@@ -1,0 +1,94 @@
+{
+  "region": "頭",
+  "branches": {
+    "一次性": "緊張型・片頭痛など、頭痛そのものが主体",
+    "二次性危険": "背後に重大疾患があるレッドフラッグ群"
+  },
+  "diseases": [
+    {
+      "id": "tension_headache",
+      "name": "緊張型頭痛",
+      "branch": "一次性",
+      "prevalence": "common",
+      "treatment_track": "局所筋骨格",
+      "movement_related": true,
+      "findings": {
+        "confirm": [
+          { "sign": "首・肩の張りを伴う", "lr": null, "rank": 2 },
+          { "sign": "長時間のデスクワーク後に増悪", "lr": null, "rank": 2 },
+          { "sign": "試験・緊張などの精神的ストレスで誘発", "lr": null, "rank": 2 },
+          { "sign": "両側性・締めつけられる鈍痛", "lr": null, "rank": 3 }
+        ],
+        "exclude": [
+          { "sign": "拍動性で片側性", "lr": null, "rank": 3 },
+          { "sign": "悪心・光過敏・音過敏を伴う", "lr": null, "rank": 3 }
+        ]
+      },
+      "note": "本に詳細表なし。臨床所見（首肩の張り・デスクワーク・緊張誘発）で構成。鍼灸院での頭痛の主役"
+    },
+    {
+      "id": "migraine",
+      "name": "片頭痛",
+      "branch": "一次性",
+      "prevalence": "occasional",
+      "treatment_track": "局所筋骨格",
+      "movement_related": false,
+      "findings": {
+        "confirm": [
+          { "sign": "悪心・光過敏・音過敏がある", "lr": 19.2, "rank": 1 },
+          { "sign": "拍動性/4〜72時間/片側性/悪心嘔吐/生活支障の強い痛み のうち4つ以上", "lr": 24, "rank": 1 },
+          { "sign": "上記のうち3つ以上", "lr": 3.5, "rank": 1 },
+          { "sign": "悪心", "lr": null, "rank": 1 },
+          { "sign": "チョコレートが誘因", "lr": null, "rank": 2 },
+          { "sign": "光過敏症", "lr": null, "rank": 2 },
+          { "sign": "音過敏症", "lr": null, "rank": 2 },
+          { "sign": "チーズが誘発因子", "lr": null, "rank": 3 },
+          { "sign": "一側性頭痛", "lr": null, "rank": 3 },
+          { "sign": "拍動性頭痛", "lr": null, "rank": 3 }
+        ],
+        "exclude": [
+          { "sign": "光過敏症なし", "lr": 0.36, "rank": 3 },
+          { "sign": "拍動性頭痛なし", "lr": 0.38, "rank": 3 },
+          { "sign": "音過敏症なし", "lr": 0.43, "rank": 3 },
+          { "sign": "一側性頭痛なし", "lr": null, "rank": 3 }
+        ]
+      }
+    },
+    {
+      "id": "temporal_arteritis",
+      "name": "側頭動脈炎",
+      "branch": "二次性危険",
+      "prevalence": "rare_redflag",
+      "treatment_track": "要医療機関",
+      "movement_related": false,
+      "findings": {
+        "confirm": [
+          { "sign": "頭皮の圧痛", "lr": 14.6, "rank": 1 },
+          { "sign": "数珠状の側頭血管", "lr": 4.6, "rank": 3 },
+          { "sign": "顎跛行", "lr": 4.3, "rank": 3 },
+          { "sign": "拡張した側頭動脈", "lr": 4.3, "rank": 3 },
+          { "sign": "側頭動脈の圧痛", "lr": 3.4, "rank": 3 },
+          { "sign": "複視", "lr": 2.7, "rank": 3 },
+          { "sign": "側頭動脈の拍動消失", "lr": 2.6, "rank": 3 }
+        ],
+        "exclude": [
+          { "sign": "最近発症の頭痛ではない", "lr": 0.37, "rank": 3 }
+        ]
+      },
+      "note": "顎跛行＋頭皮の圧痛は強い手がかり。失明リスクあり、疑えば医療機関へ"
+    },
+    {
+      "id": "tension_neck_referred",
+      "name": "頸肩腕由来の頭痛",
+      "branch": "一次性",
+      "prevalence": "common",
+      "treatment_track": "局所筋骨格",
+      "movement_related": true,
+      "note": "首の鑑別（頸椎・肩こり系）と地続き。首側マスタへ誘導してもよい"
+    }
+  ],
+  "redflags": [
+    { "sign": "神経学的所見の異常（バレー徴候・手の回内回外運動など）", "lr": 5.2, "implication": "二次性頭痛", "severity": "緊急" },
+    { "sign": "頭蓋の聴診で左右差＋濁音で減弱", "lr": null, "implication": "頭蓋内腫瘍", "severity": "緊急" }
+  ]
+}

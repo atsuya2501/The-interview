@@ -71,7 +71,6 @@ const state = {
   branch: null,        // '局所' | '放散'
   candidates: [],      // 候補疾患（idの配列）
   movement: null,      // 'related' | 'unrelated'
-  visceralFlag: false,
   findingAnswers: {},  // signKey -> 'pos' | 'neg' (未回答はキー無し)
   levelAnswers: {},    // levelSignKey -> true
   scored: [],          // Step④の集計結果
@@ -241,22 +240,18 @@ function renderMovement() {
   app().querySelectorAll('[data-mv]').forEach(btn => {
     btn.addEventListener('click', () => {
       state.movement = btn.dataset.mv;
-      const visceral = state.candidates
-        .map(diseaseById)
-        .filter(d => d && d.movement_related === false);
-
-      if (state.movement === 'unrelated' && visceral.length) {
-        // 内臓関連痛を炙り出し
-        state.visceralFlag = true;
-        state.candidates = visceral.map(d => d.id);
-      } else {
-        // 動きと関係 → 動きと無関係な疾患（内臓）を候補から除外
-        state.visceralFlag = false;
-        state.candidates = state.candidates.filter(id => {
-          const d = diseaseById(id);
-          return !(d && d.movement_related === false);
-        });
-      }
+      // 動きとの整合で候補を絞る（部位非依存）。
+      //   動くと変化する → movement_related===false（片頭痛・内臓関連痛など）を除外
+      //   動きと無関係   → movement_related===true（要・運動誘発の筋骨格系）を除外
+      // movement_related 未指定の疾患はどちらでも残す。
+      // 内臓関連痛・要医療機関などの危険群は結果画面で常時表示されるため、
+      // 「動きと無関係」を選ぶと自然に上位へ炙り出される。
+      state.candidates = state.candidates.filter(id => {
+        const d = diseaseById(id);
+        if (!d || d.movement_related === undefined) return true;
+        return state.movement === 'related' ? d.movement_related === true
+                                            : d.movement_related === false;
+      });
       state.step = 4;
       renderStep();
     });
@@ -267,9 +262,13 @@ function renderMovement() {
 // ④ 徒手検査 confirm/exclude を Rank 集計
 // =====================================================================
 
-// 1つの所見の寄与：方向はLR（≥1で陽性方向）、大きさはRank重み
-function signContribution(finding) {
-  const dir = finding.lr >= 1 ? 1 : -1;
+// 1つの所見の寄与：
+//   方向 … LRがあればLR優先（≥1で陽性方向）、LRが無ければ種別で決定（confirm=+ / exclude=−）
+//   大きさ … Rank重み
+function signContribution(finding, kind) {
+  let dir;
+  if (finding.lr != null) dir = finding.lr >= 1 ? 1 : -1;
+  else dir = kind === 'exclude' ? -1 : 1;
   return dir * (RANK_WEIGHT[finding.rank] || 1);
 }
 
@@ -296,8 +295,8 @@ function buildFindingItems() {
 function renderFindings() {
   const items = buildFindingItems();
 
-  if (state.visceralFlag || items.length === 0) {
-    // 検査対象が無い（内臓炙り出し済み等）→ 集計だけして次へ
+  if (items.length === 0) {
+    // 問診すべき所見が無い → 集計だけして次へ
     state.scored = scoreCandidates();
     state.step = needLevel() ? 5 : 6;
     return renderStep();
@@ -370,7 +369,7 @@ function scoreCandidates() {
       let contrib = 0;
       if (it.kind === 'confirm' || it.kind === 'exclude') {
         // 陽性=その所見あり / 陰性=所見の否定（寄与を反転）
-        contrib = signContribution(it) * (ans === 'pos' ? 1 : -1);
+        contrib = signContribution(it, it.kind) * (ans === 'pos' ? 1 : -1);
       } else { // test
         contrib = (ans === 'pos' ? 1 : 0) * (RANK_WEIGHT[it.rank] || 1);
       }
@@ -547,7 +546,6 @@ function restart() {
   state.branch = null;
   state.candidates = [];
   state.movement = null;
-  state.visceralFlag = false;
   state.findingAnswers = {};
   state.levelAnswers = {};
   state.scored = [];
