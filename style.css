@@ -74,6 +74,10 @@ h3 { font-size: .95rem; margin: .9rem 0 .4rem; color: var(--primary); }
 .finding-info { display: flex; flex-direction: column; }
 .finding-sign { font-size: .9rem; }
 .finding-meta { font-size: .72rem; color: var(--muted); }
+.info-btn { border: none; background: none; color: var(--accent); cursor: pointer; font-size: .95rem; padding: 0 .2rem; line-height: 1; vertical-align: middle; }
+.info-btn:hover, .info-btn.open { color: var(--primary); }
+.method { font-size: .78rem; color: #444; background: var(--accent-soft); border-left: 3px solid var(--accent); border-radius: 0 6px 6px 0; padding: .4rem .55rem; margin-top: .35rem; }
+.method b { color: var(--primary); }
 .triple { display: flex; gap: .35rem; flex-shrink: 0; }
 .tri { border: 1.5px solid var(--border); background: var(--surface); border-radius: 8px; padding: .35rem .6rem; font-size: .8rem; cursor: pointer; transition: all .12s; }
 .tri:hover { border-color: var(--accent); }

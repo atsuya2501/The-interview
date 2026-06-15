@@ -14,6 +14,7 @@
 let DISEASES = [];     // 疾患マスタ
 let BRANCHES = {};     // 局所/放散の説明
 let TREATMENTS = [];   // 治療マスタ
+let TEST_METHODS = {}; // 検査名 → 実施方法
 
 // ---- 設定（エンジンのチューニング箇所はここに集約） ----
 
@@ -84,14 +85,16 @@ const app = () => document.getElementById('app');
 // =====================================================================
 async function init() {
   try {
-    const [neck, tx] = await Promise.all([
+    const [neck, tx, methods] = await Promise.all([
       fetch('data/neck_diseases.json').then(r => r.json()),
-      fetch('data/treatment_master.json').then(r => r.json())
+      fetch('data/treatment_master.json').then(r => r.json()),
+      fetch('data/test_methods.json').then(r => r.json())
     ]);
     const neckRoot = neck[0];
     DISEASES = neckRoot.diseases;
     BRANCHES = neckRoot.branches;
     TREATMENTS = tx[0].treatments;
+    TEST_METHODS = methods.test_methods || {};
     renderStep();
   } catch (e) {
     app().innerHTML = `<div class="card error">データの読み込みに失敗しました：${e.message}</div>`;
@@ -99,6 +102,16 @@ async function init() {
 }
 
 function diseaseById(id) { return DISEASES.find(d => d.id === id); }
+
+// 所見名（例「イートンテスト陽性」「上腕二頭筋反射の減弱」）から
+// test_methods のキーを部分一致で引く。最長一致を優先。
+function findTestMethod(sign) {
+  let best = null;
+  for (const name of Object.keys(TEST_METHODS)) {
+    if (sign.includes(name) && (!best || name.length > best.length)) best = name;
+  }
+  return best ? { name: best, how: TEST_METHODS[best] } : null;
+}
 
 function renderProgress() {
   const bar = document.getElementById('progress');
@@ -312,11 +325,19 @@ function renderFindings() {
       const ans = state.findingAnswers[it.key];
       const lrTxt = it.lr != null ? `LR ${it.lr}` : '所見';
       const sub = it.kind === 'confirm' ? 'confirm' : it.kind === 'exclude' ? 'exclude' : 'test';
+      const method = findTestMethod(it.sign);
+      const infoBtn = method
+        ? `<button class="info-btn" data-method="${it.key}" title="実施方法を表示" aria-label="実施方法">ⓘ</button>`
+        : '';
+      const methodRow = method
+        ? `<div class="method" id="m-${it.key}" hidden><b>${method.name}</b>：${method.how}</div>`
+        : '';
       return `
         <div class="finding">
           <div class="finding-info">
-            <span class="finding-sign">${it.sign}</span>
+            <span class="finding-sign">${it.sign}${infoBtn}</span>
             <span class="finding-meta">${sub} ・ ${lrTxt} ・ R${it.rank}</span>
+            ${methodRow}
           </div>
           <div class="triple">
             <button class="tri ${ans === 'pos' ? 'on pos' : ''}" data-k="${it.key}" data-v="pos">陽性</button>
@@ -342,6 +363,14 @@ function renderFindings() {
       const k = btn.dataset.k, v = btn.dataset.v;
       state.findingAnswers[k] = state.findingAnswers[k] === v ? undefined : v;
       renderStep();
+    });
+  });
+
+  // 実施方法の開閉（再描画せずトグル）
+  app().querySelectorAll('.info-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const row = document.getElementById('m-' + btn.dataset.method);
+      if (row) { row.hidden = !row.hidden; btn.classList.toggle('open', !row.hidden); }
     });
   });
 
