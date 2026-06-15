@@ -1,0 +1,114 @@
+[{
+  "treatments": [
+    {
+      "id": "opioid_receptor",
+      "mechanism": "オピオイド受容体を介した鎮痛",
+      "stimulus_site": "痛みがあるところ",
+      "category": "鎮痛系",
+      "nerve_fiber": ["Aβ", "Aδ", "C"],
+      "level": "末梢",
+      "treatment_location": "炎症部位周囲",
+      "technique": "軽微な刺激（深部への刺激は行わない）"
+    },
+    {
+      "id": "adenosine_a1",
+      "mechanism": "アデノシンA1受容体を介した鎮痛",
+      "stimulus_site": "痛みがあるところ",
+      "category": "鎮痛系",
+      "nerve_fiber": ["Aδ", "C"],
+      "level": "末梢",
+      "treatment_location": "圧痛・硬結・反応点",
+      "technique": "雀啄・響くような手技"
+    },
+    {
+      "id": "gate_control_local",
+      "mechanism": "ゲートコントロール説（局所）",
+      "stimulus_site": "痛みがあるところ",
+      "category": "鎮痛系",
+      "nerve_fiber": ["Aβ"],
+      "level": "末梢",
+      "treatment_location": "圧痛・硬結・反応点",
+      "technique": "置鍼（直刺・横刺）・接触鍼（鍉鍼・小児鍼）"
+    },
+    {
+      "id": "ia_ib_inhibition",
+      "mechanism": "Ia・Ib抑制を介した筋緊張の緩和",
+      "stimulus_site": "痛みがあるところ",
+      "category": "鎮痛系以外",
+      "nerve_fiber": ["Aβ"],
+      "level": "末梢",
+      "treatment_location": "起始部・停止部（筋腱移行部）・モーターポイント",
+      "technique": "置鍼・鍉鍼"
+    },
+    {
+      "id": "blood_flow",
+      "mechanism": "血流改善",
+      "stimulus_site": "痛みがあるところ",
+      "category": "鎮痛系以外",
+      "nerve_fiber": ["C"],
+      "level": "末梢",
+      "treatment_location": "圧痛点・硬結・反応点",
+      "technique": "雀啄・響くような手技"
+    },
+    {
+      "id": "gate_control_segment",
+      "mechanism": "ゲートコントロール説（同一分節）",
+      "stimulus_site": "遠隔部・同一分節",
+      "category": "鎮痛系",
+      "nerve_fiber": ["Aβ"],
+      "level": "脊髄",
+      "treatment_location": "圧痛・硬結・反応点、夾脊穴",
+      "technique": "置鍼（直刺・横刺）・接触鍼（鍉鍼・小児鍼）"
+    },
+    {
+      "id": "somato_autonomic_reflex",
+      "mechanism": "体性自律神経反射を介した内臓調節",
+      "stimulus_site": "遠隔部・同一分節",
+      "category": "鎮痛系以外",
+      "nerve_fiber": ["Aβ", "Aδ", "C"],
+      "level": "脊髄",
+      "treatment_location": "デルマトーム/ミオトーム上の圧痛・硬結・反応点、背部兪穴",
+      "technique": "皮膚よりも深部組織への鍼"
+    },
+    {
+      "id": "descending_inhibition",
+      "mechanism": "下行疼痛抑制系",
+      "stimulus_site": "遠隔部・異分節",
+      "category": "鎮痛系",
+      "nerve_fiber": ["Aδ", "C"],
+      "level": "脳",
+      "treatment_location": "圧痛・硬結・反応点",
+      "technique": "雀啄・響くような鍼"
+    },
+    {
+      "id": "autonomic_regulation",
+      "mechanism": "自律神経の調整",
+      "stimulus_site": "遠隔部・異分節",
+      "category": "鎮痛系以外",
+      "nerve_fiber": ["Aβ", "Aδ", "C"],
+      "level": "脳",
+      "treatment_location": "抗重力筋",
+      "technique": "皮膚よりも深部組織への鍼"
+    },
+    {
+      "id": "neurotransmitter",
+      "mechanism": "神経伝達物質を介した作用",
+      "stimulus_site": "遠隔部・異分節",
+      "category": "鎮痛系以外",
+      "nerve_fiber": ["Aβ?", "Aδ", "C"],
+      "level": "脳",
+      "treatment_location": "四肢や顔面部の圧痛点・硬結・反応点",
+      "technique": "皮膚よりも深部組織への鍼"
+    },
+    {
+      "id": "keratinocyte_immune",
+      "mechanism": "角質細胞を介した免疫・内分泌調整",
+      "stimulus_site": "遠隔部・異分節",
+      "category": "鎮痛系以外",
+      "nerve_fiber": ["Aβ?", "Aδ", "C"],
+      "level": "脳",
+      "treatment_location": "全身の皮膚",
+      "technique": "擦過刺激"
+    }
+  ]
+}]

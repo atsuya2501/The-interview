@@ -1,0 +1,115 @@
+[{
+  "region": "首",
+  "branches": {
+    "局所": "頚肩部に痛みが集中",
+    "放散": "頚肩部以外にも腕に痛み/しびれ"
+  },
+  "diseases": [
+    {
+      "id": "myofascial_neck",
+      "name": "肩こり（筋筋膜性疼痛）",
+      "branch": "局所",
+      "prevalence": "common",
+      "treatment_track": "局所筋骨格",
+      "movement_related": true
+    },
+    {
+      "id": "facet_syndrome",
+      "name": "頚椎椎間関節症",
+      "branch": "局所",
+      "prevalence": "common",
+      "treatment_track": "局所筋骨格",
+      "movement_related": true
+    },
+    {
+      "id": "cervical_disc",
+      "name": "頚椎椎間板症",
+      "branch": "局所",
+      "prevalence": "common",
+      "treatment_track": "局所筋骨格",
+      "movement_related": true,
+      "note": "画像所見と症状が解離しうる。確定鑑別の優先度は低い"
+    },
+    {
+      "id": "tos",
+      "name": "胸郭出口症候群",
+      "branch": "放散",
+      "prevalence": "common",
+      "treatment_track": "局所筋骨格",
+      "movement_related": true,
+      "tests": ["モーリーテスト", "ルーステスト", "肩引き下げテスト", "イートンテスト"],
+      "note": "首の張り＋小胸筋の緊張緩和でほぼ寛解"
+    },
+    {
+      "id": "cervical_radiculopathy",
+      "name": "頚椎症性神経根症",
+      "branch": "放散",
+      "prevalence": "occasional",
+      "treatment_track": "神経系",
+      "movement_related": true,
+      "findings": {
+        "confirm": [
+          { "sign": "イートンテスト陽性", "lr": 12.8, "rank": 1 },
+          { "sign": "上腕二頭筋反射の減弱", "lr": 9.1, "rank": 2 },
+          { "sign": "スパーリングテスト陽性", "lr": 3.6, "rank": 3 },
+          { "sign": "深部腱反射いずれかの減弱", "lr": 3.6, "rank": 3 },
+          { "sign": "ジャクソンテスト陽性", "lr": 2.7, "rank": 3 }
+        ],
+        "exclude": [
+          { "sign": "患側への首回転が60°以下", "lr": 2.0, "rank": 2 },
+          { "sign": "イートンテスト陰性", "lr": 0.25, "rank": 3 },
+          { "sign": "筋力検査いずれかの減弱なし", "lr": 0.4, "rank": 3 }
+        ]
+      },
+      "level_localization": {
+        "C5": ["肘の屈曲筋力低下", "上肢外側の感覚障害"],
+        "C6": ["上腕三頭筋反射または腕橈骨筋の減弱", "母指の感覚障害", "手首の伸展筋力低下"],
+        "C7": ["肘の伸展筋力低下", "上腕三頭筋反射の減弱", "中指の感覚障害"],
+        "C8": ["小指の感覚障害"],
+        "Th1": ["上肢内側の感覚障害"]
+      }
+    },
+    {
+      "id": "cervical_myelopathy",
+      "name": "頚椎症性脊髄症",
+      "branch": "放散",
+      "prevalence": "occasional",
+      "treatment_track": "神経系",
+      "tests": ["病的反射（トレムナー・ホフマン・ワルテンベルグ）", "myelopathy hand"],
+      "note": "脊髄障害。病的反射陽性は要注意"
+    },
+    {
+      "id": "nonorganic_neck",
+      "name": "非器質性頚部痛",
+      "branch": "放散",
+      "prevalence": "occasional",
+      "treatment_track": "心理社会的",
+      "tests": ["ワデル徴候（2〜3項目以上で陽性）"]
+    },
+    {
+      "id": "psychogenic",
+      "name": "心因性",
+      "branch": "放散",
+      "prevalence": "occasional",
+      "treatment_track": "心理社会的"
+    },
+    {
+      "id": "pancoast",
+      "name": "パンコースト症候群",
+      "branch": "放散",
+      "prevalence": "rare_redflag",
+      "treatment_track": "要医療機関",
+      "tests": ["ホルネル徴候"],
+      "note": "肺尖部腫瘍。遮断対象"
+    },
+    {
+      "id": "visceral_referred",
+      "name": "内臓関連痛（心臓・肝臓・胆嚢）",
+      "branch": "局所",
+      "prevalence": "rare_redflag",
+      "treatment_track": "要医療機関",
+      "movement_related": false,
+      "note": "動きと無関係なのが手がかり。左肩=心臓、右肩=胆嚢・肝臓"
+    }
+  ]
+}]
