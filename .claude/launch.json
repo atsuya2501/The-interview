@@ -4,8 +4,8 @@
     {
       "name": "itami-kanbe",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["serve", "-p", "5500", "."],
-      "port": 5500
+      "runtimeArgs": ["-y", "serve", "C:\\Users\\ryout\\Downloads\\itami-kanbe", "-l", "5599"],
+      "port": 5599
     }
   ]
 }

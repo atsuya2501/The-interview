@@ -4,20 +4,26 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#1e3a5f" />
-  <meta name="description" content="痛み鑑別支援ツール" />
+  <meta name="description" content="痛み鑑別支援ツール（首・最小版）" />
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
   <link rel="stylesheet" href="style.css" />
-  <title>痛み鑑別</title>
+  <title>痛み鑑別（首）</title>
 </head>
 <body>
   <header>
-    <h1>痛み鑑別</h1>
+    <h1>痛み鑑別 <small>首・最小版</small></h1>
+    <div id="progress" class="progress" aria-hidden="true"></div>
   </header>
 
   <main id="app">
-    <p class="placeholder">ロジック未実装</p>
+    <p class="placeholder">読み込み中…</p>
   </main>
+
+  <footer class="disclaimer">
+    本ツールは確定診断ではなく「示唆」を提示する研究・教育目的の補助ツールです。
+    最終判断は必ず医療者が行ってください。
+  </footer>
 
   <script src="app.js"></script>
 </body>

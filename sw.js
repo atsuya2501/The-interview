@@ -1,10 +1,11 @@
-const CACHE = 'itami-kanbe-v1';
+const CACHE = 'itami-kanbe-v2';
 const ASSETS = [
   '/',
   '/index.html',
   '/style.css',
   '/app.js',
-  '/data/conditions.json',
+  '/data/neck_diseases.json',
+  '/data/treatment_master.json',
 ];
 
 self.addEventListener('install', e => {
