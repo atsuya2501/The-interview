@@ -1,0 +1,220 @@
+{
+  "region": "腰",
+  "branches": {
+    "局所": "腰部に痛みが限局、動きと関連",
+    "下肢放散": "坐骨神経痛など下肢に痛み/しびれ放散",
+    "内臓性": "動きと無関係、内臓由来の関連痛"
+  },
+  "diseases": [
+    {
+      "id": "myofascial_lbp",
+      "name": "筋筋膜性腰痛・筋筋膜疼痛症候群",
+      "branch": "局所",
+      "prevalence": "common",
+      "treatment_track": "局所筋骨格",
+      "movement_related": true,
+      "note": "鍼灸院での腰痛の主役。動作で増悪、圧痛・硬結が手がかり"
+    },
+    {
+      "id": "facet_lbp",
+      "name": "椎間関節性腰痛（椎間関節症）",
+      "branch": "局所",
+      "prevalence": "common",
+      "treatment_track": "局所筋骨格",
+      "movement_related": true,
+      "note": "後屈・回旋で増悪しやすい"
+    },
+    {
+      "id": "lumbar_disc_herniation",
+      "name": "腰椎椎間板ヘルニア",
+      "branch": "下肢放散",
+      "prevalence": "common",
+      "treatment_track": "神経系",
+      "movement_related": true,
+      "findings": {
+        "confirm": [
+          { "sign": "坐骨神経痛", "lr": null, "rank": 2 },
+          { "sign": "対側SLR陽性", "lr": 7.9, "rank": 3 },
+          { "sign": "筋力低下", "lr": 4.1, "rank": 3 },
+          { "sign": "アキレス腱・膝蓋腱反射の消失", "lr": 2.2, "rank": 3 }
+        ],
+        "exclude": [
+          { "sign": "坐骨神経痛なし", "lr": 0.06, "rank": 1 },
+          { "sign": "下肢痛より腰痛が強い", "lr": 0.3, "rank": 3 },
+          { "sign": "デルマトームに沿った痛みなし", "lr": 0.3, "rank": 3 }
+        ]
+      }
+    },
+    {
+      "id": "lumbosacral_radiculopathy",
+      "name": "腰仙椎神経根の障害（坐骨神経痛あり）",
+      "branch": "下肢放散",
+      "prevalence": "occasional",
+      "treatment_track": "神経系",
+      "movement_related": true,
+      "findings": {
+        "confirm": [
+          { "sign": "同側のふくらはぎの痩せ", "lr": 5.2, "rank": 2 },
+          { "sign": "足首の背屈力低下", "lr": 4.9, "rank": 3 },
+          { "sign": "交差伸展下肢挙上", "lr": 3.4, "rank": 3 },
+          { "sign": "アキレス腱反射の異常", "lr": 2.7, "rank": 3 }
+        ],
+        "exclude": [
+          { "sign": "伸展下肢挙上法陰性", "lr": 0.3, "rank": 3 },
+          { "sign": "足首の背屈力低下なし", "lr": 0.5, "rank": 3 }
+        ]
+      },
+      "level_localization": {
+        "L2": ["大腿前面の感覚障害"],
+        "L3": ["大腿神経伸展テスト陽性", "椅子からの片足立ち不能"],
+        "L4": ["対側大腿神経伸展試験", "椅子からの片足立ち不能", "非対称性の大腿四頭筋反射", "膝の伸展力の低下", "足関節内側の感覚障害"],
+        "L5": ["股関節外転筋力の低下", "L5領域の感覚低下", "足首の背屈筋力低下"],
+        "S1": ["S1領域の感覚低下", "非対称性のアキレス腱反射", "同側ふくらはぎの痩せ", "足首の底屈筋力低下"]
+      }
+    },
+    {
+      "id": "lumbar_spinal_stenosis",
+      "name": "腰部脊柱管狭窄症",
+      "branch": "下肢放散",
+      "prevalence": "occasional",
+      "treatment_track": "神経系",
+      "movement_related": true,
+      "findings": {
+        "confirm": [
+          { "sign": "開脚歩行", "lr": 13, "rank": 1 },
+          { "sign": "座位での疼痛消失", "lr": 7.4, "rank": 2 },
+          { "sign": "殿部の灼熱感や歩行時の勃起", "lr": 7.2, "rank": 2 },
+          { "sign": "排尿障害", "lr": 6.7, "rank": 2 },
+          { "sign": "前屈位での症状改善", "lr": 6.4, "rank": 2 },
+          { "sign": "両側の殿部・大腿部痛", "lr": 6.3, "rank": 2 },
+          { "sign": "ロンベルグ試験陽性", "lr": 4.2, "rank": 3 },
+          { "sign": "神経性跛行", "lr": 3.3, "rank": 3 },
+          { "sign": "座位での症状改善", "lr": 2.8, "rank": 3 }
+        ],
+        "exclude": [
+          { "sign": "神経性跛行なし", "lr": 0.23, "rank": 3 },
+          { "sign": "立位の間は増悪しない", "lr": 0.34, "rank": 3 },
+          { "sign": "前屈位にて疼痛なし、ではない", "lr": 0.48, "rank": 3 }
+        ]
+      },
+      "note": "高齢者に多い。前屈で楽・後屈/立位で増悪が典型"
+    },
+    {
+      "id": "chronic_lbp_risk",
+      "name": "腰痛が慢性化する可能性（心理社会的要因）",
+      "branch": "局所",
+      "prevalence": "occasional",
+      "treatment_track": "心理社会的",
+      "findings": {
+        "confirm": [
+          { "sign": "恐怖回避思考が強い", "lr": 2.5, "rank": 3 },
+          { "sign": "精神疾患の合併", "lr": 2.2, "rank": 3 },
+          { "sign": "障害が強い", "lr": 2.1, "rank": 3 }
+        ],
+        "exclude": []
+      },
+      "note": "イエローフラッグ。確定疾患ではなく慢性化リスクの指標"
+    },
+    {
+      "id": "compression_fracture",
+      "name": "圧迫骨折（急性）",
+      "branch": "局所",
+      "prevalence": "rare_redflag",
+      "treatment_track": "要医療機関",
+      "movement_related": true,
+      "findings": {
+        "confirm": [
+          { "sign": "ステロイドの使用", "lr": 48, "rank": 1 },
+          { "sign": "疼痛で側臥位が不能", "lr": 12, "rank": 1 },
+          { "sign": "年齢が70歳以上", "lr": 11, "rank": 1 },
+          { "sign": "外傷の既往", "lr": 10, "rank": 1 },
+          { "sign": "握り拳による強い脊椎叩打痛", "lr": 8.8, "rank": 2 }
+        ],
+        "exclude": [
+          { "sign": "握り拳による強い脊椎叩打痛なし", "lr": 0.1, "rank": 1 },
+          { "sign": "疼痛で側臥位が不能ではない", "lr": 0.2, "rank": 2 },
+          { "sign": "年齢が50歳未満", "lr": 0.3, "rank": 3 }
+        ]
+      },
+      "note": "高齢・ステロイド・外傷既往が強い手がかり"
+    },
+    {
+      "id": "cauda_equina",
+      "name": "馬尾症候群",
+      "branch": "下肢放散",
+      "prevalence": "rare_redflag",
+      "treatment_track": "要医療機関",
+      "findings": {
+        "confirm": [
+          { "sign": "残尿が500ml以上", "lr": 12, "rank": 1 },
+          { "sign": "両側下肢痛", "lr": 4.3, "rank": 3 },
+          { "sign": "肛門トーヌス低下", "lr": 3.6, "rank": 3 },
+          { "sign": "両側の症状", "lr": 2.2, "rank": 3 }
+        ],
+        "exclude": [
+          { "sign": "残尿が500ml未満", "lr": 0.3, "rank": 3 },
+          { "sign": "尿貯留なし", "lr": 0.5, "rank": 3 }
+        ]
+      },
+      "severity": "緊急",
+      "note": "膀胱直腸障害。緊急手術適応。遮断対象"
+    },
+    {
+      "id": "malignancy_lbp",
+      "name": "悪性腫瘍に伴う腰痛",
+      "branch": "局所",
+      "prevalence": "rare_redflag",
+      "treatment_track": "要医療機関",
+      "findings": {
+        "confirm": [
+          { "sign": "がんの既往歴", "lr": 24, "rank": 1 },
+          { "sign": "神経徴候", "lr": 7.5, "rank": 2 },
+          { "sign": "1ヵ月の安静で改善しない", "lr": 3.0, "rank": 3 },
+          { "sign": "説明できない体重減少", "lr": 3.0, "rank": 3 },
+          { "sign": "1ヵ月以上の持続痛", "lr": 2.6, "rank": 3 },
+          { "sign": "脊椎圧痛", "lr": 2.4, "rank": 3 },
+          { "sign": "年齢が50歳以上", "lr": 2.2, "rank": 3 }
+        ],
+        "exclude": [
+          { "sign": "ベッド安静で治らない痛みではない", "lr": 0.25, "rank": 3 },
+          { "sign": "がんの既往歴なし", "lr": 0.34, "rank": 3 }
+        ]
+      },
+      "severity": "緊急",
+      "note": "がん既往はLR24と極めて強い。遮断対象"
+    },
+    {
+      "id": "ankylosing_spondylitis",
+      "name": "強直性脊椎炎",
+      "branch": "局所",
+      "prevalence": "rare_redflag",
+      "treatment_track": "要医療機関",
+      "findings": {
+        "confirm": [
+          { "sign": "臥位で疼痛が改善しない・朝の背部のこわばり", "lr": 1.6, "rank": 3 }
+        ],
+        "exclude": []
+      },
+      "note": "若年・朝のこわばり・安静で改善しないのが特徴"
+    },
+    {
+      "id": "visceral_lbp",
+      "name": "内臓由来の腰痛（腎・膵・胆・子宮・前立腺・尿路）",
+      "branch": "内臓性",
+      "prevalence": "rare_redflag",
+      "treatment_track": "要医療機関",
+      "movement_related": false,
+      "note": "動きと無関係なのが手がかり。腎盂腎炎・腎結石・膵炎・胆石・子宮内膜症・前立腺炎・尿路結石など"
+    },
+    {
+      "id": "aaa",
+      "name": "腹部大動脈瘤",
+      "branch": "内臓性",
+      "prevalence": "rare_redflag",
+      "treatment_track": "要医療機関",
+      "movement_related": false,
+      "severity": "緊急",
+      "note": "拍動性腫瘤・動きと無関係。破裂すれば致命的。遮断対象"
+    }
+  ]
+}

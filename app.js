@@ -11,10 +11,17 @@
    ===================================================================== */
 
 // ---- データ保持 ----
-let DISEASES = [];     // 疾患マスタ
-let BRANCHES = {};     // 局所/放散の説明
-let TREATMENTS = [];   // 治療マスタ
-let TEST_METHODS = {}; // 検査名 → 実施方法
+let DISEASES = [];     // 選択中部位の疾患マスタ
+let BRANCHES = {};     // 選択中部位の branch 説明
+let TREATMENTS = [];   // 治療マスタ（部位共通）
+let TEST_METHODS = {}; // 検査名 → 実施方法（部位共通）
+
+// 部位定義。wrapped=true は [{...}] の配列ラップ（首）、false は素のオブジェクト（頭・腰）。
+const REGIONS = {
+  neck:   { label: '首', desc: '頚部・肩・上肢',     file: 'data/neck_diseases.json',   wrapped: true },
+  head:   { label: '頭', desc: '頭痛・頭部',         file: 'data/head_diseases.json',   wrapped: false },
+  lumbar: { label: '腰', desc: '腰部・殿部・下肢',   file: 'data/lumbar_diseases.json', wrapped: false }
+};
 
 // ---- 設定（エンジンのチューニング箇所はここに集約） ----
 
@@ -65,16 +72,18 @@ const TRACK_NOTE = {
 
 // ---- 状態 ----
 const state = {
-  step: 1,
+  step: 0,             // 0=部位選択, 1〜6=本フロー, 99=結果/遮断
+  region: null,        // 'neck' | 'head' | 'lumbar'
   redAnswers: {},      // redFlagId -> bool
-  redBlocked: false,
-  redWarnings: [],
-  branch: null,        // '局所' | '放散'
+  redWarnings: [],     // Step①の黄色警告
+  branch: null,        // 部位ごとの branch 名
   candidates: [],      // 候補疾患（idの配列）
   movement: null,      // 'related' | 'unrelated'
   findingAnswers: {},  // signKey -> 'pos' | 'neg' (未回答はキー無し)
   levelAnswers: {},    // levelSignKey -> true
   scored: [],          // Step④の集計結果
+  blockReasons: [],    // 遮断理由 [{title,message}]（Step①赤 or severity緊急）
+  severityWarnings: [],// Step④の🟡警告（要医療機関だが非緊急）
 };
 
 const TOTAL_STEPS = 6;
@@ -85,20 +94,27 @@ const app = () => document.getElementById('app');
 // =====================================================================
 async function init() {
   try {
-    const [neck, tx, methods] = await Promise.all([
-      fetch('data/neck_diseases.json').then(r => r.json()),
+    // 部位共通マスタ（治療・検査方法）を先読み
+    const [tx, methods] = await Promise.all([
       fetch('data/treatment_master.json').then(r => r.json()),
       fetch('data/test_methods.json').then(r => r.json())
     ]);
-    const neckRoot = neck[0];
-    DISEASES = neckRoot.diseases;
-    BRANCHES = neckRoot.branches;
     TREATMENTS = tx[0].treatments;
     TEST_METHODS = methods.test_methods || {};
-    renderStep();
+    renderStep(); // step 0 = 部位選択
   } catch (e) {
     app().innerHTML = `<div class="card error">データの読み込みに失敗しました：${e.message}</div>`;
   }
+}
+
+// 選択部位の疾患マスタを読み込む
+async function loadRegion(key) {
+  const cfg = REGIONS[key];
+  const raw = await fetch(cfg.file).then(r => r.json());
+  const root = cfg.wrapped ? raw[0] : raw;
+  DISEASES = root.diseases;
+  BRANCHES = root.branches;
+  state.region = key;
 }
 
 function diseaseById(id) { return DISEASES.find(d => d.id === id); }
@@ -115,13 +131,14 @@ function findTestMethod(sign) {
 
 function renderProgress() {
   const bar = document.getElementById('progress');
-  const pct = Math.round(((state.step - 1) / TOTAL_STEPS) * 100);
+  const pct = state.step < 1 ? 0 : Math.round(((state.step - 1) / TOTAL_STEPS) * 100);
   bar.innerHTML = `<div class="progress-fill" style="width:${state.step >= 99 ? 100 : pct}%"></div>`;
 }
 
 function renderStep() {
   renderProgress();
   switch (state.step) {
+    case 0: return renderRegion();
     case 1: return renderRedFlags();
     case 2: return renderBranch();
     case 3: return renderMovement();
@@ -130,6 +147,40 @@ function renderStep() {
     case 6: return renderTreatment();
     case 99: return renderBlocked();
   }
+}
+
+// =====================================================================
+// ⓪ 部位選択
+// =====================================================================
+function renderRegion() {
+  const opts = Object.keys(REGIONS).map(key => {
+    const r = REGIONS[key];
+    return `<button class="option" data-region="${key}">
+      <span class="opt-title">${r.label}</span>
+      <span class="opt-desc">${r.desc}</span>
+    </button>`;
+  }).join('');
+
+  app().innerHTML = `
+    <section class="card">
+      <div class="step-tag">部位を選択</div>
+      <h2>どこの痛みですか？</h2>
+      <p class="lead">鑑別する部位を選んでください。</p>
+      <div class="options">${opts}</div>
+    </section>`;
+
+  app().querySelectorAll('[data-region]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      try {
+        await loadRegion(btn.dataset.region);
+        state.step = 1;
+        renderStep();
+      } catch (e) {
+        app().innerHTML = `<div class="card error">部位データの読み込みに失敗しました：${e.message}</div>`;
+      }
+    });
+  });
 }
 
 function stepHeader(n, title) {
@@ -164,30 +215,25 @@ function renderRedFlags() {
   });
 
   document.getElementById('next1').addEventListener('click', () => {
-    state.redBlocked = false;
+    state.blockReasons = [];
     state.redWarnings = [];
     for (const f of RED_FLAGS) {
       if (state.redAnswers[f.id]) {
-        if (f.level === 'red') state.redBlocked = true;
+        if (f.level === 'red') state.blockReasons.push({ title: f.title, message: f.message });
         else state.redWarnings.push(f);
       }
     }
-    if (state.redBlocked) {
-      state.step = 99;
-    } else {
-      state.step = 2;
-    }
+    state.step = state.blockReasons.length ? 99 : 2;
     renderStep();
   });
 }
 
 function renderBlocked() {
-  const reds = RED_FLAGS.filter(f => f.level === 'red' && state.redAnswers[f.id]);
   app().innerHTML = `
     <section class="card block">
-      <div class="block-badge">遮断</div>
+      <div class="block-badge">🔴 遮断</div>
       <h2>鍼治療の対象外の可能性</h2>
-      ${reds.map(f => `<div class="alert red"><strong>${f.title}</strong><p>${f.message}</p></div>`).join('')}
+      ${state.blockReasons.map(r => `<div class="alert red"><strong>${r.title}</strong><p>${r.message}</p></div>`).join('')}
       <p class="lead">医療機関での対応を優先してください。</p>
       <div class="actions"><button class="btn" id="restart">最初からやり直す</button></div>
     </section>`;
@@ -201,21 +247,18 @@ function renderBranch() {
   const warnHtml = state.redWarnings.map(f =>
     `<div class="alert yellow"><strong>⚠ ${f.title}</strong><p>${f.message}</p></div>`).join('');
 
+  const opts = Object.keys(BRANCHES).map(name => `
+        <button class="option" data-branch="${name}">
+          <span class="opt-title">${name}</span>
+          <span class="opt-desc">${BRANCHES[name]}</span>
+        </button>`).join('');
+
   app().innerHTML = `
     <section class="card">
       ${stepHeader(2, '痛みの広がり方')}
       ${warnHtml}
       <p class="lead">痛み・しびれの分布に近いのは？</p>
-      <div class="options">
-        <button class="option" data-branch="局所">
-          <span class="opt-title">局所</span>
-          <span class="opt-desc">${BRANCHES['局所']}</span>
-        </button>
-        <button class="option" data-branch="放散">
-          <span class="opt-title">放散</span>
-          <span class="opt-desc">${BRANCHES['放散']}</span>
-        </button>
-      </div>
+      <div class="options">${opts}</div>
     </section>`;
 
   app().querySelectorAll('[data-branch]').forEach(btn => {
@@ -237,7 +280,7 @@ function renderMovement() {
   app().innerHTML = `
     <section class="card">
       ${stepHeader(3, '動きとの関係')}
-      <p class="lead">首・肩・腕を<strong>動かすと痛みは変化</strong>しますか？</p>
+      <p class="lead">痛む部位を<strong>動かすと痛みは変化</strong>しますか？</p>
       <div class="options">
         <button class="option" data-mv="related">
           <span class="opt-title">動きで変化する</span>
@@ -310,9 +353,7 @@ function renderFindings() {
 
   if (items.length === 0) {
     // 問診すべき所見が無い → 集計だけして次へ
-    state.scored = scoreCandidates();
-    state.step = needLevel() ? 5 : 6;
-    return renderStep();
+    return proceedAfterScoring();
   }
 
   // 疾患ごとにグルーピング表示
@@ -374,11 +415,32 @@ function renderFindings() {
     });
   });
 
-  document.getElementById('next4').addEventListener('click', () => {
-    state.scored = scoreCandidates();
-    state.step = needLevel() ? 5 : 6;
-    renderStep();
-  });
+  document.getElementById('next4').addEventListener('click', proceedAfterScoring);
+}
+
+// Step④集計後の遷移：severity緊急→🔴遮断 / 要医療機関(非緊急)→🟡警告 / それ以外→高位 or 結果
+function proceedAfterScoring() {
+  state.scored = scoreCandidates();
+
+  // findings を持つ疾患は所見で浮いた時(>0)、持たない疾患は候補入り=示唆 とみなす
+  const active = s => s.disease.findings ? s.findingScore > 0 : true;
+  const isDanger = d => d.prevalence === 'rare_redflag' || d.treatment_track === '要医療機関';
+
+  // 🔴 severity緊急（馬尾・悪性腫瘍・腹部大動脈瘤など）が浮いたら遮断
+  const emergent = state.scored.filter(s => s.disease.severity === '緊急' && active(s));
+  if (emergent.length) {
+    state.blockReasons = emergent.map(s => ({ title: s.name, message: s.disease.note || '要医療機関での対応が必要です。' }));
+    state.step = 99;
+    return renderStep();
+  }
+
+  // 🟡 要医療機関だが非緊急（圧迫骨折・内臓由来・強直性脊椎炎など）は警告つき通過
+  state.severityWarnings = state.scored
+    .filter(s => isDanger(s.disease) && s.disease.severity !== '緊急' && active(s))
+    .map(s => ({ title: s.name, message: s.disease.note || '要医療機関での対応を検討してください。' }));
+
+  state.step = needLevel() ? 5 : 6;
+  renderStep();
 }
 
 // 候補疾患の示唆スコアを集計（事前確率素点 + 所見寄与）
@@ -409,20 +471,26 @@ function scoreCandidates() {
   }).sort((a, b) => b.total - a.total);
 }
 
-// 神経根症が「浮いた」か判定（高位診断が必要か）
+// 高位診断の対象疾患：level_localization を持ち、所見で浮いた最上位疾患（部位非依存）
+function levelDisease() {
+  const ld = state.scored.find(s => s.disease.level_localization);
+  return ld || null;
+}
+
+// 高位診断が必要か（神経根症などが浮いたか）
 function needLevel() {
-  const rad = state.scored.find(s => s.id === 'cervical_radiculopathy');
-  if (!rad) return false;
-  // 所見で陽性方向に振れている、かつ上位に来ている
-  return rad.findingScore > 0 && rad === state.scored[0];
+  const ld = levelDisease();
+  if (!ld) return false;
+  // 所見で陽性方向に振れている、かつ最上位に来ている
+  return ld.findingScore > 0 && ld === state.scored[0];
 }
 
 // =====================================================================
 // ⑤ 高位診断（C5〜Th1）= 得点降順エンジン
 // =====================================================================
 function renderLevel() {
-  const rad = diseaseById('cervical_radiculopathy');
-  const loc = rad.level_localization;
+  const ld = levelDisease();
+  const loc = ld.disease.level_localization;
   const levels = Object.keys(loc);
 
   const groupHtml = levels.map(lv => {
@@ -440,7 +508,7 @@ function renderLevel() {
 
   app().innerHTML = `
     <section class="card">
-      ${stepHeader(5, '神経根症の高位診断（C5〜Th1）')}
+      ${stepHeader(5, `高位診断（${ld.name}）`)}
       <p class="lead">神経根症が上位に来ています。当てはまる所見をチェック → 得点降順で高位を推定します。</p>
       ${groupHtml}
       <div class="actions">
@@ -462,8 +530,8 @@ function renderLevel() {
 
 // 高位ごとの得点（マッチした所見数の重み合計）を降順で返す
 function scoreLevels() {
-  const rad = diseaseById('cervical_radiculopathy');
-  const loc = rad.level_localization;
+  const ld = levelDisease();
+  const loc = ld.disease.level_localization;
   return Object.keys(loc).map(lv => {
     let score = 0;
     const matched = [];
@@ -551,8 +619,8 @@ function renderTreatment() {
       </div>`;
   }).join('') : `<div class="card"><p class="lead">明確に示唆される疾患はありませんでした。問診・所見を見直してください。</p></div>`;
 
-  const warnHtml = state.redWarnings.map(f =>
-    `<div class="alert yellow"><strong>⚠ ${f.title}</strong><p>${f.message}</p></div>`).join('');
+  const warnHtml = [...state.redWarnings, ...state.severityWarnings].map(f =>
+    `<div class="alert yellow"><strong>🟡 ${f.title}</strong><p>${f.message}</p></div>`).join('');
 
   app().innerHTML = `
     <section class="result">
@@ -568,9 +636,9 @@ function renderTreatment() {
 }
 
 function restart() {
-  state.step = 1;
+  state.step = 0;
+  state.region = null;
   state.redAnswers = {};
-  state.redBlocked = false;
   state.redWarnings = [];
   state.branch = null;
   state.candidates = [];
@@ -578,6 +646,8 @@ function restart() {
   state.findingAnswers = {};
   state.levelAnswers = {};
   state.scored = [];
+  state.blockReasons = [];
+  state.severityWarnings = [];
   renderStep();
 }
 
