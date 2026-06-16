@@ -121,6 +121,7 @@
       "branch": "局所",
       "prevalence": "rare_redflag",
       "treatment_track": "要医療機関",
+      "severity": "要注意",
       "movement_related": true,
       "findings": {
         "confirm": [

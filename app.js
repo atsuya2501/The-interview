@@ -119,12 +119,27 @@ async function loadRegion(key) {
 
 function diseaseById(id) { return DISEASES.find(d => d.id === id); }
 
-// 所見名（例「イートンテスト陽性」「上腕二頭筋反射の減弱」）から
-// test_methods のキーを部分一致で引く。最長一致を優先。
+// 所見名（例「イートンテスト陽性」「残尿が500ml以上」）から test_methods のキーを引く。
+// まずキー全体の部分一致、無ければ接尾辞（測定/検査/テスト/試験/法）を除いた語幹で再照合。
+// いずれも最長一致を優先。
+const TEST_KEY_SUFFIXES = ['測定', '検査', 'テスト', '試験', '法'];
+function testKeyCore(name) {
+  for (const suf of TEST_KEY_SUFFIXES) {
+    if (name.endsWith(suf) && name.length - suf.length >= 2) return name.slice(0, -suf.length);
+  }
+  return null;
+}
 function findTestMethod(sign) {
-  let best = null;
+  let best = null, bestLen = 0;
   for (const name of Object.keys(TEST_METHODS)) {
-    if (sign.includes(name) && (!best || name.length > best.length)) best = name;
+    let matchLen = 0;
+    if (sign.includes(name)) {
+      matchLen = name.length;
+    } else {
+      const core = testKeyCore(name);
+      if (core && sign.includes(core)) matchLen = core.length;
+    }
+    if (matchLen > bestLen) { best = name; bestLen = matchLen; }
   }
   return best ? { name: best, how: TEST_METHODS[best] } : null;
 }
