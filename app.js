@@ -20,7 +20,8 @@ let TEST_METHODS = {}; // 検査名 → 実施方法（部位共通）
 const REGIONS = {
   neck:   { label: '首', desc: '頚部・肩・上肢',     file: 'data/neck_diseases.json',   wrapped: true },
   head:   { label: '頭', desc: '頭痛・頭部',         file: 'data/head_diseases.json',   wrapped: false },
-  lumbar: { label: '腰', desc: '腰部・殿部・下肢',   file: 'data/lumbar_diseases.json', wrapped: false }
+  lumbar: { label: '腰', desc: '腰部・殿部・下肢',   file: 'data/lumbar_diseases.json', wrapped: false },
+  face:   { label: '顔', desc: '顔面・顎・口腔',     file: 'data/face_diseases.json',   wrapped: false }
 };
 
 // ---- 設定（エンジンのチューニング箇所はここに集約） ----
@@ -628,9 +629,11 @@ function renderTreatment() {
           <span class="score-pill">スコア ${s.total}</span>
         </div>
         <div class="bar"><div class="bar-fill" style="width:${(s.total / maxTotal) * 100}%"></div></div>
+        ${s.disease.cardinal_signs ? `<p class="cardinal"><b>主要徴候</b> ${s.disease.cardinal_signs.join(' / ')}</p>` : ''}
         ${s.disease.note && !isRed ? `<p class="note">📝 ${s.disease.note}</p>` : ''}
         ${hitTxt}
         ${txHtml}
+        ${s.disease.subtypes ? `<div class="subtypes"><div class="subtypes-h">病型（参考表示）</div>${Object.entries(s.disease.subtypes).map(([k, v]) => `<div class="subtype"><b>${k}</b> ${v}</div>`).join('')}</div>` : ''}
       </div>`;
   }).join('') : `<div class="card"><p class="lead">明確に示唆される疾患はありませんでした。問診・所見を見直してください。</p></div>`;
 

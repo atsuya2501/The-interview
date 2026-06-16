@@ -113,6 +113,12 @@ h3 { font-size: .95rem; margin: .9rem 0 .4rem; color: var(--primary); }
 .bar { height: 8px; background: var(--border); border-radius: 999px; overflow: hidden; margin: .6rem 0; }
 .bar-fill { height: 100%; background: var(--accent); border-radius: 999px; }
 .note { font-size: .82rem; color: var(--muted); margin: .4rem 0; }
+.cardinal { font-size: .82rem; margin: .4rem 0; }
+.cardinal b { color: var(--primary); margin-right: .3rem; }
+.subtypes { margin-top: .6rem; border-top: 1px dashed var(--border); padding-top: .5rem; }
+.subtypes-h { font-size: .76rem; font-weight: 700; color: var(--muted); margin-bottom: .3rem; }
+.subtype { font-size: .8rem; padding: .12rem 0; }
+.subtype b { color: var(--primary); margin-right: .35rem; }
 .hint { font-size: .82rem; color: var(--muted); margin-top: .5rem; }
 
 .hit-list { list-style: none; margin: .5rem 0; font-size: .82rem; }
