@@ -1,0 +1,224 @@
+{
+  "region": "手",
+  "branches": {
+    "手首": "手首の痛み（手根管・腱鞘炎系）",
+    "手指": "手や指の痛み（関節・腱・血流）",
+    "神経性": "絞扼性神経障害・放散するしびれ"
+  },
+  "diseases": [
+    {
+      "id": "carpal_tunnel",
+      "name": "手根管症候群",
+      "branch": "手首",
+      "prevalence": "common",
+      "treatment_track": "局所筋骨格",
+      "movement_related": true,
+      "findings": {
+        "confirm": [
+          { "sign": "手振り徴候（フリック徴候）陽性", "lr": 21, "rank": 1 },
+          { "sign": "握り拳徴候陽性", "lr": 7.3, "rank": 2 },
+          { "sign": "クローズドフィスト徴候陽性", "lr": 7.3, "rank": 2 },
+          { "sign": "母指球の萎縮", "lr": 5.4, "rank": 2 },
+          { "sign": "正中神経領域の知覚鈍麻", "lr": 3.4, "rank": 3 },
+          { "sign": "チネル徴候陽性", "lr": 2.7, "rank": 3 }
+        ],
+        "exclude": [
+          { "sign": "手振り徴候陰性", "lr": 0.1, "rank": 1 },
+          { "sign": "握り拳徴候陰性", "lr": 0.4, "rank": 3 },
+          { "sign": "クローズドフィスト徴候陰性", "lr": 0.4, "rank": 3 },
+          { "sign": "年齢が40歳未満", "lr": 0.5, "rank": 3 },
+          { "sign": "夜間の感覚異常なし", "lr": 0.5, "rank": 3 },
+          { "sign": "チネル徴候陰性", "lr": 0.5, "rank": 3 },
+          { "sign": "母指外転筋力の低下なし", "lr": 0.5, "rank": 3 }
+        ]
+      },
+      "note": "手首の正中神経圧迫。使いすぎ・妊娠後ホルモン異常・甲状腺機能低下・透析(アミロイド)でも生じる。手振り徴候はLR21と極めて強い。第2〜3指の機能低下"
+    },
+    {
+      "id": "dequervain",
+      "name": "ドケルバン病",
+      "branch": "手首",
+      "prevalence": "common",
+      "treatment_track": "局所筋骨格",
+      "movement_related": true,
+      "findings": {
+        "confirm": [
+          { "sign": "つかむ・握る動作に痛み", "lr": null, "rank": 2 }
+        ],
+        "exclude": []
+      },
+      "note": "長母指外転筋・長母指伸筋の腱鞘炎。つかむ・つまむ・強く握る動作の反復で生じる"
+    },
+    {
+      "id": "intersection_syndrome",
+      "name": "インターセクション症候群",
+      "branch": "手首",
+      "prevalence": "occasional",
+      "treatment_track": "局所筋骨格",
+      "movement_related": true,
+      "note": "手首背側第1・2区画の長母指外転筋と短母指伸筋の腱炎"
+    },
+    {
+      "id": "trigger_finger",
+      "name": "ばね指",
+      "branch": "手指",
+      "prevalence": "common",
+      "treatment_track": "局所筋骨格",
+      "movement_related": true,
+      "findings": {
+        "confirm": [
+          { "sign": "指の曲げ伸ばしに伴う痛みとコツコツ音", "lr": null, "rank": 2 }
+        ],
+        "exclude": []
+      },
+      "note": "指の付け根の痛みとコツコツ音。使いすぎ以外に糖尿病患者の15〜40%に生じる。第1〜2指に多い"
+    },
+    {
+      "id": "hand_oa",
+      "name": "変形性関節症（ヘバーデン・ブシャール結節）",
+      "branch": "手指",
+      "prevalence": "common",
+      "treatment_track": "局所筋骨格",
+      "movement_related": true,
+      "findings": {
+        "confirm": [
+          { "sign": "DIP関節に生じた結節と痛み（ヘバーデン結節）", "lr": null, "rank": 2 },
+          { "sign": "PIP関節に生じた結節と痛み（ブシャール結節）", "lr": null, "rank": 2 }
+        ],
+        "exclude": []
+      },
+      "note": "手の痛みとこわばり、複数関節の腫大・変形。DIP=ヘバーデン、PIP=ブシャール"
+    },
+    {
+      "id": "thumb_cm_oa",
+      "name": "母指CM関節症",
+      "branch": "手指",
+      "prevalence": "common",
+      "treatment_track": "局所筋骨格",
+      "movement_related": true,
+      "findings": {
+        "confirm": [
+          { "sign": "物をつまむ時などに母指の付け根(CM関節)が痛む", "lr": null, "rank": 2 }
+        ],
+        "exclude": []
+      },
+      "note": "母指基部の疼痛・腫脹・不安定性。つまみ動作で痛み。閉経後女性に多い"
+    },
+    {
+      "id": "ra_hand",
+      "name": "関節リウマチ",
+      "branch": "手指",
+      "prevalence": "occasional",
+      "treatment_track": "要医療機関",
+      "severity": "要注意",
+      "findings": {
+        "confirm": [
+          { "sign": "最近関節の手術を受けた既往歴", "lr": 15.0, "rank": 1 },
+          { "sign": "朝のこわばり、手指の変形", "lr": null, "rank": 2 },
+          { "sign": "スワンネック変形・ボタンホール変形", "lr": null, "rank": 2 }
+        ],
+        "exclude": [
+          { "sign": "手の関節(手関節・MC・PIP)の罹患なし", "lr": 0.4, "rank": 3 },
+          { "sign": "PIP・MCP・手関節・肘・膝・足関節・中足趾節のうち3ヵ所以上の関節腫脹なし", "lr": 0.5, "rank": 3 },
+          { "sign": "朝のこわばりが1時間以上続かない", "lr": 0.5, "rank": 3 }
+        ]
+      },
+      "note": "1時間以上続く朝のこわばり、3ヵ所以上の関節腫脹で判断。スワンネック・ボタンホール変形。膠原病として精査"
+    },
+    {
+      "id": "raynaud",
+      "name": "レイノー病",
+      "branch": "手指",
+      "prevalence": "occasional",
+      "treatment_track": "要医療機関",
+      "severity": "要注意",
+      "findings": {
+        "confirm": [
+          { "sign": "手の冷え・色調変化（蒼白→チアノーゼ→発赤）", "lr": null, "rank": 2 }
+        ],
+        "exclude": []
+      },
+      "note": "色調変化(白→青→赤)と痛みしびれ。背後に膠原病があることもあり受診を促す"
+    },
+    {
+      "id": "septic_arthritis_hand",
+      "name": "化膿性関節炎",
+      "branch": "手指",
+      "prevalence": "rare_redflag",
+      "treatment_track": "要医療機関",
+      "severity": "要注意",
+      "findings": {
+        "confirm": [
+          { "sign": "年齢が80歳以上", "lr": 3.5, "rank": 3 },
+          { "sign": "糖尿病の既往歴", "lr": 2.7, "rank": 3 }
+        ],
+        "exclude": []
+      },
+      "note": "関節炎に至るきっかけ(最近の関節手術・糖尿病既往)を確認。高齢・糖尿病で疑い受診を促す"
+    },
+    {
+      "id": "pseudogout_hand",
+      "name": "偽痛風",
+      "branch": "手指",
+      "prevalence": "occasional",
+      "treatment_track": "要医療機関",
+      "severity": "要注意",
+      "note": "ピロリン酸カルシウム関連。膝・手関節・足関節の順に多く、手関節ではMCPに多い"
+    },
+    {
+      "id": "median_nerve_hand",
+      "name": "正中神経障害（手根管症候群・円回内筋症候群）",
+      "branch": "神経性",
+      "prevalence": "occasional",
+      "treatment_track": "局所筋骨格",
+      "movement_related": true,
+      "findings": {
+        "confirm": [
+          { "sign": "第1〜3指の機能低下と痛み、猿手", "lr": null, "rank": 2 }
+        ],
+        "exclude": []
+      },
+      "note": "正中神経の絞扼。第1〜3指の機能低下・猿手。肘マスタと地続き"
+    },
+    {
+      "id": "radial_nerve_hand",
+      "name": "橈骨神経障害",
+      "branch": "神経性",
+      "prevalence": "occasional",
+      "treatment_track": "局所筋骨格",
+      "movement_related": true,
+      "findings": {
+        "confirm": [
+          { "sign": "前腕橈側の痛み、下垂手・下垂指", "lr": null, "rank": 2 }
+        ],
+        "exclude": []
+      },
+      "note": "橈骨神経の絞扼。下垂手・下垂指。肘マスタと地続き"
+    },
+    {
+      "id": "ulnar_nerve_hand",
+      "name": "尺骨神経障害（肘部管症候群・ギオン管症候群）",
+      "branch": "神経性",
+      "prevalence": "occasional",
+      "treatment_track": "局所筋骨格",
+      "movement_related": true,
+      "findings": {
+        "confirm": [
+          { "sign": "第4〜5指の機能低下と痛み、鷲手", "lr": null, "rank": 2 }
+        ],
+        "exclude": []
+      },
+      "note": "尺骨神経の絞扼。第4〜5指の機能低下・鷲手。肘マスタと地続き"
+    },
+    {
+      "id": "hypothyroid_hand",
+      "name": "甲状腺機能低下症・アミロイド変性",
+      "branch": "手首",
+      "prevalence": "rare_redflag",
+      "treatment_track": "要医療機関",
+      "severity": "要注意",
+      "movement_related": false,
+      "note": "手根管症候群の背景因子。透析患者のアミロイド変性、甲状腺機能低下、妊娠後ホルモン異常。動きと無関係なら内分泌系を疑う"
+    }
+  ]
+}
