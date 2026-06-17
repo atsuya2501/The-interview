@@ -1,0 +1,232 @@
+{
+  "region": "腹",
+  "branches": {
+    "急性腹症": "穿孔・出血・閉塞の危険がある緊急疾患",
+    "腫瘍性": "身体所見では捕まえにくいが進行する（経過観察対象）",
+    "機能性": "機能性・自律神経性の腹部愁訴（鍼適応）"
+  },
+  "peritoneal_sign_override": {
+    "signs": ["筋性防御", "反跳痛"],
+    "action": "緊急",
+    "note": "腹膜刺激徴候。穿孔・腹膜炎の疑い。陽性ならどの疾患でも🔴緊急遮断に強制格上げ"
+  },
+  "diseases": [
+    {
+      "id": "appendicitis",
+      "name": "虫垂炎",
+      "branch": "急性腹症",
+      "prevalence": "occasional",
+      "treatment_track": "要医療機関",
+      "severity": "緊急",
+      "findings": {
+        "confirm": [
+          { "sign": "筋性防御", "lr": 3.9, "rank": 1 },
+          { "sign": "マックバーニー点の圧痛", "lr": 3.4, "rank": 1 },
+          { "sign": "右下腹部痛", "lr": 8.0, "rank": 1 },
+          { "sign": "1分間触診試験陽性", "lr": 8.5, "rank": 1 },
+          { "sign": "反跳痛", "lr": 6.3, "rank": 1 },
+          { "sign": "移動痛", "lr": 3.2, "rank": 2 },
+          { "sign": "嘔吐", "lr": null, "rank": 2 },
+          { "sign": "Psoas徴候陽性", "lr": null, "rank": 2 },
+          { "sign": "ロブシング徴候陽性", "lr": null, "rank": 2 }
+        ],
+        "exclude": [
+          { "sign": "右下腹部痛なし", "lr": 0.2, "rank": 2 },
+          { "sign": "移動痛なし", "lr": 0.5, "rank": 3 }
+        ]
+      },
+      "note": "🔴遮断。右下腹部痛・マックバーニー点圧痛・筋性防御・反跳痛・移動痛。穿孔前に受診。1分間触診試験(closed eye signの逆、開眼で痛む)陽性"
+    },
+    {
+      "id": "cholecystitis",
+      "name": "胆嚢炎",
+      "branch": "急性腹症",
+      "prevalence": "occasional",
+      "treatment_track": "要医療機関",
+      "severity": "緊急",
+      "findings": {
+        "confirm": [
+          { "sign": "Murphy徴候陽性", "lr": 2.8, "rank": 1 },
+          { "sign": "右季肋部痛", "lr": null, "rank": 1 },
+          { "sign": "筋性防御", "lr": null, "rank": 1 },
+          { "sign": "発熱", "lr": null, "rank": 2 }
+        ],
+        "exclude": [
+          { "sign": "Murphy徴候陰性", "lr": 0.5, "rank": 2 }
+        ]
+      },
+      "note": "🔴遮断。右季肋部痛・Murphy徴候陽性(右季肋下部を圧迫し深吸気で痛みで止まる)。胆石嵌頓・胆嚢炎"
+    },
+    {
+      "id": "bowel_obstruction",
+      "name": "腸閉塞",
+      "branch": "急性腹症",
+      "prevalence": "occasional",
+      "treatment_track": "要医療機関",
+      "severity": "緊急",
+      "findings": {
+        "confirm": [
+          { "sign": "腹部膨満", "lr": 5.9, "rank": 1 },
+          { "sign": "腸蠕動音の亢進", "lr": 5.0, "rank": 1 },
+          { "sign": "視覚的蠕動", "lr": 18.8, "rank": 1 },
+          { "sign": "嘔吐", "lr": 3.2, "rank": 2 },
+          { "sign": "便通変化", "lr": 9.6, "rank": 1 }
+        ],
+        "exclude": [
+          { "sign": "腹部膨満なし", "lr": 0.4, "rank": 2 },
+          { "sign": "異常な蠕動音なし", "lr": 0.4, "rank": 3 }
+        ]
+      },
+      "note": "🔴遮断。腹部膨満・金属音様の腸蠕動音亢進・視覚的蠕動(LR18.8)・便通変化・嘔吐。閉塞起点より口側拡張"
+    },
+    {
+      "id": "upper_gi_bleeding",
+      "name": "上部消化管出血",
+      "branch": "急性腹症",
+      "prevalence": "occasional",
+      "treatment_track": "要医療機関",
+      "severity": "緊急",
+      "findings": {
+        "confirm": [
+          { "sign": "黒色便", "lr": 25, "rank": 1 },
+          { "sign": "上部消化管出血の既往歴", "lr": 6.2, "rank": 1 },
+          { "sign": "50歳未満", "lr": 3.5, "rank": 3 },
+          { "sign": "肝硬変", "lr": 3.1, "rank": 2 },
+          { "sign": "ワーファリンの服用", "lr": 2.3, "rank": 2 },
+          { "sign": "心窩部痛", "lr": 2.3, "rank": 2 },
+          { "sign": "鉄剤の服用", "lr": 2.2, "rank": 3 }
+        ],
+        "exclude": [
+          { "sign": "黒色便なし", "lr": 0.13, "rank": 1 }
+        ]
+      },
+      "note": "🔴遮断。黒色便(タール便, LR25)・心窩部痛・吐血。肝硬変や抗凝固薬で増悪。鉄剤でも黒色便が出るので鑑別"
+    },
+    {
+      "id": "lower_gi_bleeding",
+      "name": "下部消化管出血",
+      "branch": "急性腹症",
+      "prevalence": "occasional",
+      "treatment_track": "要医療機関",
+      "severity": "緊急",
+      "findings": {
+        "confirm": [
+          { "sign": "便に鮮血が混じる", "lr": null, "rank": 1 },
+          { "sign": "ターール様便(便の中にタールのような血液の塊)", "lr": null, "rank": 1 }
+        ],
+        "exclude": []
+      },
+      "note": "🔴遮断。鮮血便・タール様便。下部消化管からの出血"
+    },
+    {
+      "id": "gastric_cancer",
+      "name": "胃がん",
+      "branch": "腫瘍性",
+      "prevalence": "occasional",
+      "treatment_track": "経過観察",
+      "severity": "経過観察",
+      "follow_up_threshold": { "sessions": 5, "weeks": 4 },
+      "redflag_escalation": {
+        "signs": ["嚥下障害", "消化管出血・貧血", "嘔気・嘔吐", "体重減少"],
+        "count": 2,
+        "escalate_to": "要注意"
+      },
+      "findings": {
+        "confirm": [
+          { "sign": "嚥下障害", "lr": 3.8, "rank": 2 },
+          { "sign": "消化管出血・貧血・嘔気・嘔吐のいずれか複数", "lr": 3.6, "rank": 2 },
+          { "sign": "体重減少", "lr": 3.3, "rank": 2 }
+        ],
+        "exclude": []
+      },
+      "note": "経過観察トラック。身体所見では確定困難。鍼の適応となりうるが5回/4週で改善・悪化しなければ受診勧奨。体重減少・嚥下障害・消化管出血・貧血が2つ以上揃えば🟡に格上げし即受診"
+    },
+    {
+      "id": "colorectal_cancer",
+      "name": "大腸がん",
+      "branch": "腫瘍性",
+      "prevalence": "occasional",
+      "treatment_track": "経過観察",
+      "severity": "経過観察",
+      "follow_up_threshold": { "sessions": 5, "weeks": 4 },
+      "redflag_escalation": {
+        "signs": ["血便", "便通変化", "体重減少", "貧血"],
+        "count": 2,
+        "escalate_to": "要注意"
+      },
+      "findings": {
+        "confirm": [
+          { "sign": "血糖値が180mg/dl以上", "lr": 44.6, "rank": 1 },
+          { "sign": "下血", "lr": 10, "rank": 1 },
+          { "sign": "腹痛", "lr": 5.1, "rank": 2 },
+          { "sign": "下痢", "lr": 3.9, "rank": 2 },
+          { "sign": "出血+軟便・頻便", "lr": 3.2, "rank": 2 },
+          { "sign": "出血+肛門周囲症状なし", "lr": 2.9, "rank": 2 },
+          { "sign": "便通変化", "lr": 2.4, "rank": 2 },
+          { "sign": "濃赤便", "lr": 2.1, "rank": 3 }
+        ],
+        "exclude": [
+          { "sign": "軟便・頻便のみ", "lr": 0.13, "rank": 3 }
+        ]
+      },
+      "note": "経過観察トラック。下血(LR10)・便通変化・血便で疑う。5回/4週で改善・悪化しなければ受診勧奨。血便・便通変化・体重減少・貧血が2つ以上で🟡格上げ。※血糖値180以上は併存疾患指標(本の数値)"
+    },
+    {
+      "id": "cholelithiasis",
+      "name": "胆石症",
+      "branch": "急性腹症",
+      "prevalence": "occasional",
+      "treatment_track": "要医療機関",
+      "severity": "要注意",
+      "findings": {
+        "confirm": [
+          { "sign": "右季肋部痛", "lr": null, "rank": 1 },
+          { "sign": "脂肪食後の発作", "lr": null, "rank": 2 }
+        ],
+        "exclude": []
+      },
+      "note": "🟡右季肋部痛・脂肪食後発作。胆嚢炎に移行しうるので受診勧奨"
+    },
+    {
+      "id": "ibd",
+      "name": "炎症性腸疾患",
+      "branch": "急性腹症",
+      "prevalence": "occasional",
+      "treatment_track": "要医療機関",
+      "severity": "要注意",
+      "findings": {
+        "confirm": [
+          { "sign": "出血+肛門周囲症状なし", "lr": 4.6, "rank": 1 },
+          { "sign": "出血+軟便・頻便", "lr": 2.4, "rank": 2 },
+          { "sign": "発症時排便4〜6回/日", "lr": 4.2, "rank": 2 },
+          { "sign": "発症時排便が4回/日以下", "lr": 5.5, "rank": 2 },
+          { "sign": "潜行発症", "lr": 3.3, "rank": 3 },
+          { "sign": "肉眼的血便", "lr": 3.9, "rank": 2 }
+        ],
+        "exclude": [
+          { "sign": "出血+便通変化なし", "lr": 0.3, "rank": 2 },
+          { "sign": "出血+肛門周囲症状なし(除外側)", "lr": 0.47, "rank": 3 }
+        ]
+      },
+      "note": "🟡血便・頻回排便・潜行性発症。潰瘍性大腸炎・クローン病。受診勧奨"
+    },
+    {
+      "id": "functional_abdominal",
+      "name": "機能性腹部愁訴",
+      "branch": "機能性",
+      "prevalence": "common",
+      "treatment_track": "自律神経",
+      "findings": {
+        "confirm": [
+          { "sign": "腹部膨満なし", "lr": null, "rank": 2 },
+          { "sign": "腸管蠕動正常", "lr": null, "rank": 2 },
+          { "sign": "筋性防御なし", "lr": null, "rank": 1 },
+          { "sign": "反跳痛なし", "lr": null, "rank": 1 },
+          { "sign": "closed eye sign陽性", "lr": 6.6, "rank": 1 }
+        ],
+        "exclude": []
+      },
+      "note": "鍼適応。器質的疾患を除外した後の機能性・自律神経性の腹部不調。closed eye sign陽性(腹部診察時に目を閉じる=心因性・非器質的を示唆, LR6.6)は機能性の手がかり"
+    }
+  ]
+}

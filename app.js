@@ -15,6 +15,7 @@ let DISEASES = [];     // 選択中部位の疾患マスタ
 let BRANCHES = {};     // 選択中部位の branch 説明
 let TREATMENTS = [];   // 治療マスタ（部位共通）
 let TEST_METHODS = {}; // 検査名 → 実施方法（部位共通）
+let PERITONEAL = null; // 腹膜刺激徴候オーバーライド（腹部のみ）
 
 // 部位定義。wrapped=true は [{...}] の配列ラップ（首）、false は素のオブジェクト（頭・腰）。
 const REGIONS = {
@@ -25,7 +26,8 @@ const REGIONS = {
   shoulder: { label: '肩', desc: '肩関節・肩周囲',   file: 'data/shoulder_diseases.json', wrapped: false },
   elbow:  { label: '肘', desc: '肘・前腕',           file: 'data/elbow_diseases.json',  wrapped: false },
   hand:   { label: '手', desc: '手首・手指',         file: 'data/hand_diseases.json',   wrapped: false },
-  chest:  { label: '胸', desc: '胸部・胸壁',         file: 'data/chest_diseases.json',  wrapped: false }
+  chest:  { label: '胸', desc: '胸部・胸壁',         file: 'data/chest_diseases.json',  wrapped: false },
+  abdomen: { label: '腹', desc: '腹部・消化器',      file: 'data/abdomen_diseases.json', wrapped: false }
 };
 
 // ---- 設定（エンジンのチューニング箇所はここに集約） ----
@@ -66,13 +68,17 @@ const TRACK_MAP = {
   '局所筋骨格': t => t.level === '末梢',
   '神経系':     t => t.level === '末梢' || t.level === '脊髄' || t.id === 'descending_inhibition',
   '心理社会的': t => t.level === '脳',
-  '要医療機関': () => false
+  '自律神経':   t => t.id === 'somato_autonomic_reflex' || t.id === 'autonomic_regulation' || t.id === 'descending_inhibition',
+  '要医療機関': () => false,
+  '経過観察':   () => false
 };
 const TRACK_NOTE = {
   '局所筋骨格': '痛みの局所（末梢レベル）への治療が中心。',
   '神経系':     '末梢に加え、脊髄分節・下行性抑制を狙う治療を組み合わせる。',
   '心理社会的': '脳レベルへの働きかけ（自律神経調整など）を中心に。',
-  '要医療機関': '鍼治療の対象外。医療機関での対応が必要。'
+  '自律神経':   '体性-自律神経反射・脳レベルの調整を中心に。',
+  '要医療機関': '鍼治療の対象外。医療機関での対応が必要。',
+  '経過観察':   '鍼の適応となりうるが、改善しなければ受診勧奨。'
 };
 
 // ---- 状態 ----
@@ -119,6 +125,7 @@ async function loadRegion(key) {
   const root = cfg.wrapped ? raw[0] : raw;
   DISEASES = root.diseases;
   BRANCHES = root.branches;
+  PERITONEAL = root.peritoneal_sign_override || null;
   state.region = key;
 }
 
@@ -443,12 +450,28 @@ function renderFindings() {
 //   severity_conditional があれば、急性フラグ（陽性所見に「急性」「激痛」を含む）で 急性期/慢性期 を切替。
 function effectiveSeverity(s) {
   const d = s.disease;
-  if (d.severity) return d.severity;
   if (d.severity_conditional) {
     const acute = (s.hits || []).some(h => h.ans === 'pos' && (h.sign.includes('急性') || h.sign.includes('激痛')));
     return acute ? d.severity_conditional['急性期'] : d.severity_conditional['慢性期'];
   }
+  // 経過観察トラック：レッドフラッグ所見が指定数以上揃えば格上げ
+  if (d.severity === '経過観察' || d.treatment_track === '経過観察') {
+    return redflagsMet(s) ? (d.redflag_escalation && d.redflag_escalation.escalate_to || '要注意') : '経過観察';
+  }
+  if (d.severity) return d.severity;
   return undefined;
+}
+
+// 経過観察トラックの redflag_escalation 条件を満たすか（陽性所見とレッドフラッグ群の一致数で判定）
+function redflagsMet(s) {
+  const esc = s.disease.redflag_escalation;
+  if (!esc) return false;
+  const posSigns = (s.hits || []).filter(h => h.ans === 'pos').map(h => h.sign);
+  let cnt = 0;
+  for (const rf of esc.signs) {
+    if (posSigns.some(ps => ps.includes(rf) || rf.includes(ps))) cnt++;
+  }
+  return cnt >= (esc.count || 99);
 }
 
 // Step④集計後の遷移：実効severity緊急→🔴遮断 / 要注意・要医療機関(非緊急)→🟡警告 / それ以外→高位 or 結果
@@ -459,7 +482,17 @@ function proceedAfterScoring() {
   const active = s => s.disease.findings ? s.findingScore > 0 : true;
   const isDanger = d => d.prevalence === 'rare_redflag' || d.treatment_track === '要医療機関';
 
-  // 🔴 実効severity緊急（馬尾・腹部大動脈瘤・石灰沈着性腱炎の急性期など）が浮いたら遮断
+  // 🔴🔴 腹膜刺激徴候オーバーライド：筋性防御・反跳痛が陽性ならどの疾患でも強制遮断（穿孔・腹膜炎）
+  if (PERITONEAL && Array.isArray(PERITONEAL.signs)) {
+    const hit = state.scored.some(s => (s.hits || []).some(h => h.ans === 'pos' && PERITONEAL.signs.includes(h.sign)));
+    if (hit) {
+      state.blockReasons = [{ title: '腹膜刺激徴候陽性', message: PERITONEAL.note || '穿孔・腹膜炎の疑い。直ちに医療機関へ。' }];
+      state.step = 99;
+      return renderStep();
+    }
+  }
+
+  // 🔴 実効severity緊急（急性腹症・馬尾・石灰沈着性腱炎の急性期など）が浮いたら遮断
   const emergent = state.scored.filter(s => active(s) && effectiveSeverity(s) === '緊急');
   if (emergent.length) {
     state.blockReasons = emergent.map(s => ({ title: s.name, message: s.disease.note || '要医療機関での対応が必要です。' }));
@@ -617,14 +650,28 @@ function renderTreatment() {
   const maxTotal = Math.max(...suggestions.map(s => s.total), 1);
   const sugHtml = suggestions.length ? suggestions.map((s, i) => {
     const txs = treatmentsForTrack(s.disease.treatment_track);
-    const isRed = s.disease.prevalence === 'rare_redflag' || s.disease.treatment_track === '要医療機関';
+    const isObs = s.disease.treatment_track === '経過観察';
+    const isRed = !isObs && (s.disease.prevalence === 'rare_redflag' || s.disease.treatment_track === '要医療機関');
     const hitTxt = s.hits.length
       ? `<ul class="hit-list">${s.hits.map(h =>
           `<li>${h.sign} <span class="${h.contrib > 0 ? 'plus' : 'minus'}">${h.contrib > 0 ? '+' : ''}${h.contrib}</span></li>`).join('')}</ul>`
       : '<p class="hint">所見入力なし（有病率の事前確率のみ）</p>';
 
+    const obsHtml = (() => {
+      const th = s.disease.follow_up_threshold || {};
+      const thTxt = [th.sessions ? th.sessions + '回' : '', th.weeks ? th.weeks + '週' : ''].filter(Boolean).join(' / ');
+      const escalated = redflagsMet(s);
+      return `<div class="obs-block">
+        <p class="obs-h">📋 経過観察トラック</p>
+        <p>鍼治療の適応となりうるが、<b>${thTxt || '一定回数・期間'}</b>で改善しない・悪化する場合は受診勧奨。</p>
+        ${escalated ? `<div class="alert yellow"><strong>🟡 レッドフラッグ複数陽性</strong><p>即受診を勧奨してください。</p></div>` : ''}
+      </div>`;
+    })();
+
     const txHtml = isRed
       ? `<div class="alert red"><strong>要医療機関</strong><p>${TRACK_NOTE['要医療機関']}${s.disease.note ? '<br>' + s.disease.note : ''}</p></div>`
+      : isObs
+      ? obsHtml
       : `<div class="tx-block">
            <p class="tx-track">治療方針：<strong>${s.disease.treatment_track}</strong> — ${TRACK_NOTE[s.disease.treatment_track] || ''}</p>
            ${txs.map(t => `

@@ -126,6 +126,11 @@ h3 { font-size: .95rem; margin: .9rem 0 .4rem; color: var(--primary); }
 .plus { color: var(--green); font-weight: 700; }
 .minus { color: var(--red); font-weight: 700; }
 
+/* observation track */
+.obs-block { margin-top: .6rem; border: 1px solid #cfe0f5; background: #f0f6fe; border-radius: 10px; padding: .7rem .8rem; }
+.obs-h { font-weight: 700; font-size: .9rem; color: var(--primary); margin-bottom: .3rem; }
+.obs-block p { font-size: .84rem; }
+
 /* treatment */
 .tx-block { margin-top: .6rem; }
 .tx-track { font-size: .85rem; margin-bottom: .5rem; }
