@@ -1,0 +1,169 @@
+{
+  "region": "胸",
+  "branches": {
+    "心臓性": "虚血性・非虚血性の心疾患（致死的）",
+    "致死的非心臓性": "大動脈解離・肺塞栓・気胸など",
+    "筋骨格神経性": "肋間神経痛・筋筋膜性・肋軟骨炎（鍼適応）"
+  },
+  "diseases": [
+    {
+      "id": "myocardial_infarction",
+      "name": "心筋梗塞",
+      "branch": "心臓性",
+      "prevalence": "rare_redflag",
+      "treatment_track": "要医療機関",
+      "severity": "緊急",
+      "movement_related": false,
+      "findings": {
+        "confirm": [
+          { "sign": "肩または両腕への放散痛", "lr": 9.7, "rank": 2 },
+          { "sign": "右手への放散痛", "lr": 7.3, "rank": 2 },
+          { "sign": "嘔吐", "lr": 3.5, "rank": 3 },
+          { "sign": "左手への放散痛", "lr": 2.2, "rank": 3 },
+          { "sign": "持続性または安静時に起こる", "lr": null, "rank": 1 },
+          { "sign": "30分以上持続", "lr": null, "rank": 1 }
+        ],
+        "exclude": []
+      },
+      "note": "🔴遮断。30分以上持続・安静時・両腕や右手への放散・嘔吐。分単位で致死的。直ちに救急"
+    },
+    {
+      "id": "angina",
+      "name": "狭心症",
+      "branch": "心臓性",
+      "prevalence": "rare_redflag",
+      "treatment_track": "要医療機関",
+      "severity": "緊急",
+      "movement_related": false,
+      "findings": {
+        "confirm": [
+          { "sign": "締め付けられるような痛み", "lr": null, "rank": 1 },
+          { "sign": "持続時間が数分〜数十分", "lr": null, "rank": 2 },
+          { "sign": "労作・ストレスで誘発", "lr": null, "rank": 2 },
+          { "sign": "胸痛持続時間が5分未満", "lr": null, "rank": 2 }
+        ],
+        "exclude": []
+      },
+      "note": "🔴遮断。締め付け感・労作で誘発・数分〜数十分。冠動脈硬化による虚血。直ちに受診"
+    },
+    {
+      "id": "aortic_dissection",
+      "name": "大動脈解離",
+      "branch": "致死的非心臓性",
+      "prevalence": "rare_redflag",
+      "treatment_track": "要医療機関",
+      "severity": "緊急",
+      "movement_related": false,
+      "findings": {
+        "confirm": [
+          { "sign": "裂けるような痛み", "lr": 10.8, "rank": 1 },
+          { "sign": "移動痛", "lr": 7.6, "rank": 2 },
+          { "sign": "背部痛", "lr": 2.0, "rank": 3 }
+        ],
+        "exclude": []
+      },
+      "note": "🔴遮断。裂けるような痛み(LR10.8)・移動痛・背部痛。分単位で致死的。直ちに救急"
+    },
+    {
+      "id": "pulmonary_embolism",
+      "name": "肺塞栓",
+      "branch": "致死的非心臓性",
+      "prevalence": "rare_redflag",
+      "treatment_track": "要医療機関",
+      "severity": "緊急",
+      "movement_related": false,
+      "note": "🔴遮断。突然の呼吸困難・胸痛。致死的。直ちに救急"
+    },
+    {
+      "id": "pneumothorax",
+      "name": "気胸",
+      "branch": "致死的非心臓性",
+      "prevalence": "rare_redflag",
+      "treatment_track": "要医療機関",
+      "severity": "緊急",
+      "movement_related": false,
+      "findings": {
+        "confirm": [
+          { "sign": "刺痛・呼吸困難", "lr": null, "rank": 1 },
+          { "sign": "持続時間30分以上", "lr": null, "rank": 2 }
+        ],
+        "exclude": []
+      },
+      "note": "🔴遮断。突然の刺すような胸痛・呼吸困難。直ちに受診"
+    },
+    {
+      "id": "gi_chest",
+      "name": "消化器系疾患（消化性潰瘍・食道疾患）",
+      "branch": "致死的非心臓性",
+      "prevalence": "occasional",
+      "treatment_track": "要医療機関",
+      "severity": "要注意",
+      "movement_related": false,
+      "findings": {
+        "confirm": [
+          { "sign": "空腹時痛", "lr": null, "rank": 2 }
+        ],
+        "exclude": []
+      },
+      "note": "🟡空腹時痛・食事関連。消化性潰瘍・食道疾患。受診を促す"
+    },
+    {
+      "id": "intercostal_neuralgia",
+      "name": "肋間神経痛",
+      "branch": "筋骨格神経性",
+      "prevalence": "common",
+      "treatment_track": "局所筋骨格",
+      "movement_related": true,
+      "findings": {
+        "confirm": [
+          { "sign": "ピリピリした痛み", "lr": null, "rank": 2 },
+          { "sign": "長時間持続", "lr": null, "rank": 3 }
+        ],
+        "exclude": []
+      },
+      "note": "鍼適応。ピリピリした神経痛様の痛み。肋骨に沿う"
+    },
+    {
+      "id": "myofascial_chest",
+      "name": "筋筋膜性疼痛症候群",
+      "branch": "筋骨格神経性",
+      "prevalence": "common",
+      "treatment_track": "局所筋骨格",
+      "movement_related": true,
+      "note": "鍼適応。動作・体位で変化する胸壁の筋性疼痛"
+    },
+    {
+      "id": "costochondritis",
+      "name": "肋軟骨炎",
+      "branch": "筋骨格神経性",
+      "prevalence": "occasional",
+      "treatment_track": "局所筋骨格",
+      "movement_related": true,
+      "note": "鍼適応。肋軟骨部の圧痛・体動で増悪。胸鎖関節炎含む"
+    },
+    {
+      "id": "anxiety_chest",
+      "name": "不安神経症・うつ病",
+      "branch": "筋骨格神経性",
+      "prevalence": "occasional",
+      "treatment_track": "心理社会的",
+      "movement_related": false,
+      "note": "🟡心因性胸痛。器質的疾患を除外した後に考慮。心理社会的支援"
+    },
+    {
+      "id": "herpes_zoster_chest",
+      "name": "帯状疱疹",
+      "branch": "筋骨格神経性",
+      "prevalence": "occasional",
+      "treatment_track": "要医療機関",
+      "movement_related": false,
+      "findings": {
+        "confirm": [
+          { "sign": "皮疹がある", "lr": null, "rank": 1 }
+        ],
+        "exclude": []
+      },
+      "note": "皮疹を伴う胸壁痛。肋間神経に沿う。皮疹出現前は診断困難"
+    }
+  ]
+}

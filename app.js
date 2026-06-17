@@ -24,7 +24,8 @@ const REGIONS = {
   face:   { label: '顔', desc: '顔面・顎・口腔',     file: 'data/face_diseases.json',   wrapped: false },
   shoulder: { label: '肩', desc: '肩関節・肩周囲',   file: 'data/shoulder_diseases.json', wrapped: false },
   elbow:  { label: '肘', desc: '肘・前腕',           file: 'data/elbow_diseases.json',  wrapped: false },
-  hand:   { label: '手', desc: '手首・手指',         file: 'data/hand_diseases.json',   wrapped: false }
+  hand:   { label: '手', desc: '手首・手指',         file: 'data/hand_diseases.json',   wrapped: false },
+  chest:  { label: '胸', desc: '胸部・胸壁',         file: 'data/chest_diseases.json',  wrapped: false }
 };
 
 // ---- 設定（エンジンのチューニング箇所はここに集約） ----
