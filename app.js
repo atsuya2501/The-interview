@@ -21,7 +21,8 @@ const REGIONS = {
   neck:   { label: '首', desc: '頚部・肩・上肢',     file: 'data/neck_diseases.json',   wrapped: true },
   head:   { label: '頭', desc: '頭痛・頭部',         file: 'data/head_diseases.json',   wrapped: false },
   lumbar: { label: '腰', desc: '腰部・殿部・下肢',   file: 'data/lumbar_diseases.json', wrapped: false },
-  face:   { label: '顔', desc: '顔面・顎・口腔',     file: 'data/face_diseases.json',   wrapped: false }
+  face:   { label: '顔', desc: '顔面・顎・口腔',     file: 'data/face_diseases.json',   wrapped: false },
+  shoulder: { label: '肩', desc: '肩関節・肩周囲',   file: 'data/shoulder_diseases.json', wrapped: false }
 };
 
 // ---- 設定（エンジンのチューニング箇所はここに集約） ----
@@ -434,7 +435,20 @@ function renderFindings() {
   document.getElementById('next4').addEventListener('click', proceedAfterScoring);
 }
 
-// Step④集計後の遷移：severity緊急→🔴遮断 / 要医療機関(非緊急)→🟡警告 / それ以外→高位 or 結果
+// 疾患の実効 severity を返す。
+//   severity（固定）があればそれ。
+//   severity_conditional があれば、急性フラグ（陽性所見に「急性」「激痛」を含む）で 急性期/慢性期 を切替。
+function effectiveSeverity(s) {
+  const d = s.disease;
+  if (d.severity) return d.severity;
+  if (d.severity_conditional) {
+    const acute = (s.hits || []).some(h => h.ans === 'pos' && (h.sign.includes('急性') || h.sign.includes('激痛')));
+    return acute ? d.severity_conditional['急性期'] : d.severity_conditional['慢性期'];
+  }
+  return undefined;
+}
+
+// Step④集計後の遷移：実効severity緊急→🔴遮断 / 要注意・要医療機関(非緊急)→🟡警告 / それ以外→高位 or 結果
 function proceedAfterScoring() {
   state.scored = scoreCandidates();
 
@@ -442,17 +456,18 @@ function proceedAfterScoring() {
   const active = s => s.disease.findings ? s.findingScore > 0 : true;
   const isDanger = d => d.prevalence === 'rare_redflag' || d.treatment_track === '要医療機関';
 
-  // 🔴 severity緊急（馬尾・悪性腫瘍・腹部大動脈瘤など）が浮いたら遮断
-  const emergent = state.scored.filter(s => s.disease.severity === '緊急' && active(s));
+  // 🔴 実効severity緊急（馬尾・腹部大動脈瘤・石灰沈着性腱炎の急性期など）が浮いたら遮断
+  const emergent = state.scored.filter(s => active(s) && effectiveSeverity(s) === '緊急');
   if (emergent.length) {
     state.blockReasons = emergent.map(s => ({ title: s.name, message: s.disease.note || '要医療機関での対応が必要です。' }));
     state.step = 99;
     return renderStep();
   }
 
-  // 🟡 要医療機関だが非緊急（圧迫骨折・内臓由来・強直性脊椎炎など）は警告つき通過
+  // 🟡 要注意（条件付き慢性期含む）または 要医療機関(非緊急) は警告つき通過
   state.severityWarnings = state.scored
-    .filter(s => isDanger(s.disease) && s.disease.severity !== '緊急' && active(s))
+    .filter(s => active(s) && effectiveSeverity(s) !== '緊急'
+      && (effectiveSeverity(s) === '要注意' || isDanger(s.disease)))
     .map(s => ({ title: s.name, message: s.disease.note || '要医療機関での対応を検討してください。' }));
 
   state.step = needLevel() ? 5 : 6;

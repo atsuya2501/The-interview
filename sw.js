@@ -1,4 +1,4 @@
-const CACHE = 'itami-kanbe-v6';
+const CACHE = 'itami-kanbe-v7';
 const ASSETS = [
   '/',
   '/index.html',
@@ -8,6 +8,7 @@ const ASSETS = [
   '/data/head_diseases.json',
   '/data/lumbar_diseases.json',
   '/data/face_diseases.json',
+  '/data/shoulder_diseases.json',
   '/data/treatment_master.json',
   '/data/test_methods.json',
 ];

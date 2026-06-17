@@ -1,0 +1,272 @@
+{
+  "region": "肩",
+  "branches": {
+    "退行性": "加齢・退行変性に伴う肩周囲の障害（主流）",
+    "外傷性": "骨折・脱臼・腱損傷",
+    "神経性": "末梢神経障害・腕神経叢など",
+    "内臓性": "動きと無関係、内臓・代謝由来"
+  },
+  "diseases": [
+    {
+      "id": "frozen_shoulder",
+      "name": "肩関節周囲炎（五十肩）",
+      "branch": "退行性",
+      "prevalence": "common",
+      "treatment_track": "局所筋骨格",
+      "movement_related": true,
+      "findings": {
+        "confirm": [
+          { "sign": "結帯・結髪動作時の痛み", "lr": null, "rank": 2 }
+        ],
+        "exclude": []
+      },
+      "note": "肩痛の最多原因。中高年に多い退行変性。夜間痛・結帯結髪動作の制限が特徴。重だるい痛み(炎症時は激痛)、動作で増悪"
+    },
+    {
+      "id": "tendinitis",
+      "name": "腱板炎",
+      "branch": "退行性",
+      "prevalence": "common",
+      "treatment_track": "局所筋骨格",
+      "movement_related": true,
+      "findings": {
+        "confirm": [
+          { "sign": "ニアーテスト陽性", "lr": null, "rank": 2 },
+          { "sign": "ホーキンステスト陽性", "lr": null, "rank": 2 },
+          { "sign": "ペインフルアーク徴候", "lr": null, "rank": 2 }
+        ],
+        "exclude": [
+          { "sign": "ホーキンステストとニアーテストの両方が陰性", "lr": 0.1, "rank": 1 },
+          { "sign": "ホーキンステスト陰性", "lr": 0.3, "rank": 3 },
+          { "sign": "ニアーテスト陰性", "lr": 0.4, "rank": 3 }
+        ]
+      },
+      "note": "棘上筋など腱板の炎症。インピンジメント系テストが手がかり"
+    },
+    {
+      "id": "rotator_cuff_tear",
+      "name": "腱板断裂",
+      "branch": "退行性",
+      "prevalence": "occasional",
+      "treatment_track": "局所筋骨格",
+      "movement_related": true,
+      "findings": {
+        "confirm": [
+          { "sign": "年齢が60歳以上", "lr": 32, "rank": 1 },
+          { "sign": "触知可能な断裂", "lr": 10.2, "rank": 1 },
+          { "sign": "ドロップアームテスト陽性", "lr": 5.2, "rank": 2 },
+          { "sign": "棘上筋の萎縮", "lr": 2.0, "rank": 3 },
+          { "sign": "棘下筋の萎縮", "lr": 2.0, "rank": 3 },
+          { "sign": "棘上筋の筋力低下", "lr": 2.0, "rank": 3 }
+        ],
+        "exclude": [
+          { "sign": "触知可能な断裂なし", "lr": 0.1, "rank": 1 },
+          { "sign": "ホーキンステスト陰性", "lr": 0.3, "rank": 3 }
+        ]
+      },
+      "note": "高齢・触知可能な断裂はLR高い。スポーツ選手にも多い。腱板損傷の進行形"
+    },
+    {
+      "id": "biceps_tendinitis",
+      "name": "上腕二頭筋長頭腱炎",
+      "branch": "退行性",
+      "prevalence": "occasional",
+      "treatment_track": "局所筋骨格",
+      "movement_related": true,
+      "findings": {
+        "confirm": [
+          { "sign": "ヤーガソンテスト陽性", "lr": null, "rank": 2 },
+          { "sign": "ストレッチテスト陽性（肩伸展で痛み、肘屈曲で軽減）", "lr": null, "rank": 2 }
+        ],
+        "exclude": []
+      },
+      "note": "結節間溝部の腱炎。ヤーガソン・ストレッチテストが手がかり"
+    },
+    {
+      "id": "impingement_syndrome",
+      "name": "インピンジメント症候群",
+      "branch": "退行性",
+      "prevalence": "occasional",
+      "treatment_track": "局所筋骨格",
+      "movement_related": true,
+      "findings": {
+        "confirm": [
+          { "sign": "インピンジメントテスト陽性", "lr": null, "rank": 2 }
+        ],
+        "exclude": []
+      }
+    },
+    {
+      "id": "calcific_tendinitis",
+      "name": "石灰沈着性腱炎",
+      "branch": "退行性",
+      "prevalence": "occasional",
+      "treatment_track": "局所筋骨格",
+      "movement_related": true,
+      "severity_conditional": {
+        "急性期": "緊急",
+        "慢性期": "要注意"
+      },
+      "findings": {
+        "confirm": [
+          { "sign": "激痛（急性期）", "lr": null, "rank": 2 }
+        ],
+        "exclude": []
+      },
+      "note": "急性期(激痛・夜間痛)は🔴鍼を避け安静冷却→医療機関。落ち着いた慢性期は🟡慎重に局所治療可"
+    },
+    {
+      "id": "shoulder_oa",
+      "name": "変形性肩関節症",
+      "branch": "退行性",
+      "prevalence": "occasional",
+      "treatment_track": "局所筋骨格",
+      "movement_related": true,
+      "findings": {
+        "confirm": [
+          { "sign": "動作開始時に特に痛む", "lr": null, "rank": 2 },
+          { "sign": "肩関節のほとんどの動きで痛み", "lr": null, "rank": 3 }
+        ],
+        "exclude": []
+      },
+      "note": "動き始めの痛みが特徴だが、他部位に比べると稀"
+    },
+    {
+      "id": "ra_shoulder",
+      "name": "関節リウマチ",
+      "branch": "退行性",
+      "prevalence": "occasional",
+      "treatment_track": "要医療機関",
+      "movement_related": true,
+      "findings": {
+        "confirm": [
+          { "sign": "朝のこわばり、他の関節症状", "lr": null, "rank": 2 },
+          { "sign": "熱感や腫脹が認められる", "lr": null, "rank": 3 }
+        ],
+        "exclude": []
+      },
+      "note": "朝のこわばりが主症状。肩から発症は稀。多関節症状あれば膠原病として精査"
+    },
+    {
+      "id": "tos_shoulder",
+      "name": "胸郭出口症候群",
+      "branch": "神経性",
+      "prevalence": "common",
+      "treatment_track": "局所筋骨格",
+      "movement_related": true,
+      "findings": {
+        "confirm": [
+          { "sign": "肩・腕・手の痛み、しびれ", "lr": null, "rank": 2 }
+        ],
+        "exclude": []
+      },
+      "note": "首マスタと地続き。首の張り＋小胸筋緩和で寛解しやすい"
+    },
+    {
+      "id": "fracture_dislocation_shoulder",
+      "name": "骨折・脱臼・靭帯腱損傷",
+      "branch": "外傷性",
+      "prevalence": "occasional",
+      "treatment_track": "要医療機関",
+      "movement_related": true,
+      "note": "外傷既往あり。受傷機転が明確なら整形へ"
+    },
+    {
+      "id": "osteonecrosis_shoulder",
+      "name": "骨壊死",
+      "branch": "外傷性",
+      "prevalence": "rare_redflag",
+      "treatment_track": "要医療機関",
+      "movement_related": true,
+      "findings": {
+        "confirm": [
+          { "sign": "肩関節のほとんどの動きで痛み", "lr": null, "rank": 3 },
+          { "sign": "壊死部や骨折部を叩くと痛みが強く現れる", "lr": null, "rank": 3 }
+        ],
+        "exclude": []
+      },
+      "note": "骨由来。叩打で増悪。要画像精査"
+    },
+    {
+      "id": "cardiac_shoulder",
+      "name": "心臓疾患（関連痛）",
+      "branch": "内臓性",
+      "prevalence": "rare_redflag",
+      "treatment_track": "要医療機関",
+      "movement_related": false,
+      "severity": "要注意",
+      "findings": {
+        "confirm": [
+          { "sign": "肩痛＋胸部痛・動悸、肩の運動と痛みは関係ない", "lr": null, "rank": 1 },
+          { "sign": "締めつけられるような胸痛", "lr": null, "rank": 1 }
+        ],
+        "exclude": []
+      },
+      "note": "左肩に多い。動きと無関係＋胸部症状は要注意。狭心症・心筋梗塞を念頭に医療機関へ"
+    },
+    {
+      "id": "pulmonary_shoulder",
+      "name": "肺疾患（関連痛）",
+      "branch": "内臓性",
+      "prevalence": "rare_redflag",
+      "treatment_track": "要医療機関",
+      "movement_related": false,
+      "severity": "要注意",
+      "findings": {
+        "confirm": [
+          { "sign": "気胸（咳・呼吸苦・胸膜痛のいずれか）", "lr": 70, "rank": 1 },
+          { "sign": "COPD（樽状胸）", "lr": 10, "rank": 1 },
+          { "sign": "気管支喘息（安静時呼吸困難）", "lr": 9.2, "rank": 2 },
+          { "sign": "気管支喘息（喘鳴）", "lr": 5.9, "rank": 2 },
+          { "sign": "COPD（労作時呼吸困難・90m歩行で休む）", "lr": 3.0, "rank": 3 }
+        ],
+        "exclude": [
+          { "sign": "気管支喘息（喘鳴）なし", "lr": 0.29, "rank": 2 }
+        ]
+      },
+      "note": "咳・呼吸苦・喘鳴。気胸はLR70と極めて強い。動きと無関係なら医療機関へ"
+    },
+    {
+      "id": "gallbladder_shoulder",
+      "name": "胆嚢疾患（関連痛）",
+      "branch": "内臓性",
+      "prevalence": "rare_redflag",
+      "treatment_track": "要医療機関",
+      "movement_related": false,
+      "severity": "要注意",
+      "findings": {
+        "confirm": [
+          { "sign": "右上腹部の圧痛、食欲不振", "lr": null, "rank": 2 }
+        ],
+        "exclude": []
+      },
+      "note": "右肩に多い。動きと無関係。詳細はお腹マスタ参照"
+    },
+    {
+      "id": "pancreas_shoulder",
+      "name": "膵臓疾患（関連痛）",
+      "branch": "内臓性",
+      "prevalence": "rare_redflag",
+      "treatment_track": "要医療機関",
+      "movement_related": false,
+      "severity": "要注意",
+      "findings": {
+        "confirm": [
+          { "sign": "心窩部・右季肋部痛", "lr": null, "rank": 2 }
+        ],
+        "exclude": []
+      },
+      "note": "動きと無関係。詳細はお腹マスタ参照"
+    },
+    {
+      "id": "thyroid_shoulder",
+      "name": "甲状腺機能亢進症",
+      "branch": "内臓性",
+      "prevalence": "rare_redflag",
+      "treatment_track": "要医療機関",
+      "movement_related": false,
+      "severity": "要注意",
+      "note": "代謝系。動きと無関係の肩痛で疑う"
+    }
+  ]
+}
