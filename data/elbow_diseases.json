@@ -1,0 +1,189 @@
+{
+  "region": "肘",
+  "branches": {
+    "筋骨格系": "肘周辺に限局、動作で増悪",
+    "神経性": "絞扼性神経障害・放散するしびれ",
+    "内臓性": "動きと無関係、内臓・中枢由来"
+  },
+  "diseases": [
+    {
+      "id": "medial_epicondylitis",
+      "name": "内側上顆炎（ゴルフ肘）",
+      "branch": "筋骨格系",
+      "prevalence": "common",
+      "treatment_track": "局所筋骨格",
+      "movement_related": true,
+      "findings": {
+        "confirm": [
+          { "sign": "肘屈曲動作時の痛み", "lr": null, "rank": 2 },
+          { "sign": "手関節掌屈テスト陽性", "lr": null, "rank": 2 }
+        ],
+        "exclude": []
+      },
+      "note": "屈筋群の障害。ゴルフ肘。手を繰り返し使う仕事・スポーツで多い"
+    },
+    {
+      "id": "lateral_epicondylitis",
+      "name": "外側上顆炎（テニス肘）",
+      "branch": "筋骨格系",
+      "prevalence": "common",
+      "treatment_track": "局所筋骨格",
+      "movement_related": true,
+      "findings": {
+        "confirm": [
+          { "sign": "肘伸展動作時の痛み", "lr": null, "rank": 2 },
+          { "sign": "中指伸展テスト陽性", "lr": null, "rank": 2 },
+          { "sign": "手関節背屈テスト陽性", "lr": null, "rank": 2 }
+        ],
+        "exclude": []
+      },
+      "note": "伸筋群の障害。テニス肘。肘痛の最多クラス"
+    },
+    {
+      "id": "olecranon_bursitis",
+      "name": "肘頭部滑液包炎",
+      "branch": "筋骨格系",
+      "prevalence": "occasional",
+      "treatment_track": "局所筋骨格",
+      "movement_related": true,
+      "note": "関節リウマチや痛風に伴い発症することがある"
+    },
+    {
+      "id": "cubital_tunnel",
+      "name": "肘部管症候群（尺骨神経の圧迫）",
+      "branch": "神経性",
+      "prevalence": "common",
+      "treatment_track": "局所筋骨格",
+      "movement_related": true,
+      "findings": {
+        "confirm": [
+          { "sign": "尺側のしびれや感覚障害", "lr": null, "rank": 1 },
+          { "sign": "運動麻痺（鷲手）", "lr": null, "rank": 1 },
+          { "sign": "フローマン徴候陽性（紙が簡単に引き抜ける）", "lr": null, "rank": 2 },
+          { "sign": "チネル徴候陽性（肘部管叩打でしびれ再現）", "lr": null, "rank": 2 }
+        ],
+        "exclude": []
+      },
+      "note": "尺骨神経の絞扼。肘を繰り返し使う動作で生じる。鷲手・尺側しびれが特徴"
+    },
+    {
+      "id": "pronator_teres_syndrome",
+      "name": "円回内筋症候群（正中神経）",
+      "branch": "神経性",
+      "prevalence": "occasional",
+      "treatment_track": "局所筋骨格",
+      "movement_related": true,
+      "findings": {
+        "confirm": [
+          { "sign": "肘周囲＋第1〜3指手掌の痛みとしびれ", "lr": null, "rank": 1 },
+          { "sign": "運動麻痺（猿手）", "lr": null, "rank": 2 },
+          { "sign": "パーフェクトOテスト陽性（綺麗なOが作れない）", "lr": null, "rank": 2 }
+        ],
+        "exclude": []
+      },
+      "note": "正中神経の絞扼。繰り返しの前腕回内運動で生じる。猿手・第1〜3指手掌のしびれ"
+    },
+    {
+      "id": "radial_nerve_palsy",
+      "name": "橈骨神経障害・回外筋症候群",
+      "branch": "神経性",
+      "prevalence": "occasional",
+      "treatment_track": "局所筋骨格",
+      "movement_related": true,
+      "findings": {
+        "confirm": [
+          { "sign": "肘周囲＋第1〜3指手背の痛みとしびれ", "lr": null, "rank": 1 },
+          { "sign": "運動麻痺（下垂手）", "lr": null, "rank": 2 }
+        ],
+        "exclude": []
+      },
+      "note": "橈骨神経の絞扼。手首を繰り返し使うことで生じる。下垂手・第1〜3指手背のしびれ"
+    },
+    {
+      "id": "guyon_canal",
+      "name": "ギオン管症候群（尺骨神経の圧迫）",
+      "branch": "神経性",
+      "prevalence": "occasional",
+      "treatment_track": "局所筋骨格",
+      "movement_related": true,
+      "note": "尺骨神経の手首での絞扼。上肢筋骨格系障害として連鎖しやすい"
+    },
+    {
+      "id": "tos_elbow",
+      "name": "胸郭出口症候群",
+      "branch": "神経性",
+      "prevalence": "occasional",
+      "treatment_track": "局所筋骨格",
+      "movement_related": true,
+      "findings": {
+        "confirm": [
+          { "sign": "肩・腕・手全体の痛みしびれ", "lr": null, "rank": 2 }
+        ],
+        "exclude": []
+      },
+      "note": "首・肩マスタと地続き。肘より中枢側の神経障害"
+    },
+    {
+      "id": "cervical_spondylosis_elbow",
+      "name": "頚椎症",
+      "branch": "神経性",
+      "prevalence": "occasional",
+      "treatment_track": "神経系",
+      "movement_related": true,
+      "findings": {
+        "confirm": [
+          { "sign": "肩・腕、手全体の痛みしびれ", "lr": null, "rank": 2 }
+        ],
+        "exclude": []
+      },
+      "note": "首マスタへ誘導可。肘より中枢側の神経障害による放散痛"
+    },
+    {
+      "id": "elbow_ligament_injury",
+      "name": "肘の靭帯損傷・剥離骨折",
+      "branch": "筋骨格系",
+      "prevalence": "occasional",
+      "treatment_track": "要医療機関",
+      "movement_related": true,
+      "note": "外傷既往あり。受傷機転が明確なら整形へ"
+    },
+    {
+      "id": "ra_elbow",
+      "name": "関節リウマチ",
+      "branch": "筋骨格系",
+      "prevalence": "occasional",
+      "treatment_track": "要医療機関",
+      "severity": "要注意",
+      "note": "朝のこわばり・多関節症状。痛風・偽痛風と並ぶ。膠原病として精査"
+    },
+    {
+      "id": "crps_elbow",
+      "name": "CRPS（複合性局所疼痛症候群）",
+      "branch": "神経性",
+      "prevalence": "rare_redflag",
+      "treatment_track": "要医療機関",
+      "severity": "要注意",
+      "note": "骨折等の神経損傷後の激しい痛み。灼熱痛・過度の発汗・腫脹・アロディニアを広範囲に伴う難治性疼痛"
+    },
+    {
+      "id": "visceral_elbow",
+      "name": "内臓関連痛（心臓・胃・食道）",
+      "branch": "内臓性",
+      "prevalence": "rare_redflag",
+      "treatment_track": "要医療機関",
+      "movement_related": false,
+      "severity": "要注意",
+      "note": "動きと無関係。狭心症患者の約20%に左腕の痛み。横隔膜に接する臓器・食道由来。詳細は胸・お腹マスタ参照"
+    },
+    {
+      "id": "stroke_elbow",
+      "name": "脳梗塞",
+      "branch": "内臓性",
+      "prevalence": "rare_redflag",
+      "treatment_track": "要医療機関",
+      "movement_related": false,
+      "severity": "要注意",
+      "note": "肘より中枢側の神経障害として上肢痛・しびれ。他の神経症状を伴えば受診を強く推奨"
+    }
+  ]
+}
