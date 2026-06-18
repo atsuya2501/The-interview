@@ -1,4 +1,4 @@
-const CACHE = 'itami-kanbe-v12';
+const CACHE = 'itami-kanbe-v13';
 const ASSETS = [
   '/',
   '/index.html',
@@ -17,6 +17,7 @@ const ASSETS = [
   '/data/treatment_master.json',
   '/data/test_methods.json',
   '/data/dermatome_map.json',
+  '/data/peripheral_nerve_map.json',
 ];
 
 self.addEventListener('install', e => {

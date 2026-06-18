@@ -44,10 +44,47 @@
       }
     },
     "上肢": {
-      "nerve_roots": ["C5", "C6", "C7", "C8", "T1"],
+      "nerve_roots": ["C5", "C6", "C7", "C8"],
       "source_structures": ["頸椎椎間板", "頸椎椎間関節"],
-      "patterns": {},
-      "_note": "枠のみ用意。腕版（頸椎神経根C5-T1）のデータは後日投入予定。投入後は首・肩・肘・手の神経根症レコードが参照する"
+      "patterns": {
+        "C5": {
+          "responsible_disc_level": "C4/5",
+          "tendon_reflex": "上腕二頭筋腱反射",
+          "tendon_reflex_change": "減弱・消失",
+          "sensory_area": "肩〜上腕外側",
+          "motor_deficit": ["肩の外転", "肘屈曲"],
+          "dermatome": "肩〜上腕外側（三角筋領域）",
+          "note": "上腕二頭筋腱反射の異常が責任高位の手がかり"
+        },
+        "C6": {
+          "responsible_disc_level": "C5/6",
+          "tendon_reflex": "腕橈骨筋腱反射",
+          "tendon_reflex_change": "減弱・消失",
+          "sensory_area": "前腕外側〜母指側の手・母指",
+          "motor_deficit": ["肘屈曲", "手関節背屈"],
+          "dermatome": "前腕橈側〜母指",
+          "note": "最も頻度の高い頸椎神経根症レベルの一つ"
+        },
+        "C7": {
+          "responsible_disc_level": "C6/7",
+          "tendon_reflex": "上腕三頭筋腱反射",
+          "tendon_reflex_change": "減弱・消失",
+          "sensory_area": "前腕後面〜中指",
+          "motor_deficit": ["肘伸展", "手関節掌屈"],
+          "dermatome": "前腕後面〜中指",
+          "note": "頸椎神経根症で最も頻度が高いレベル"
+        },
+        "C8": {
+          "responsible_disc_level": "C7/T1",
+          "tendon_reflex": "反射障害なし",
+          "tendon_reflex_change": "なし（C8は明確な腱反射が乏しい）",
+          "sensory_area": "前腕内側下部〜小指側の手・小指",
+          "motor_deficit": ["手指屈曲", "手指内外転"],
+          "dermatome": "前腕尺側〜小指",
+          "note": "腱反射での鑑別ができないため、運動障害(手指の巧緻運動)と感覚領域が主な手がかり"
+        }
+      },
+      "_diagram_note": "T1/T2は本図に表示されているが責任高位の表には含まれず、C5-C8が頸椎神経根症の主要対象"
     }
   }
 }

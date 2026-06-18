@@ -17,6 +17,7 @@ let TREATMENTS = [];   // 治療マスタ（部位共通）
 let TEST_METHODS = {}; // 検査名 → 実施方法（部位共通）
 let PERITONEAL = null; // 腹膜刺激徴候オーバーライド（腹部のみ）
 let DERMATOME = null;  // 神経根デルマトームマップ（共有リソース）
+let PERIPHERAL = null; // 末梢神経支配領域マップ（共有リソース）
 
 // 部位定義。wrapped=true は [{...}] の配列ラップ（首）、false は素のオブジェクト（頭・腰）。
 const REGIONS = {
@@ -95,6 +96,32 @@ function dermatomeInfo(level) {
   return null;
 }
 
+// デルマトーム情報を「責任椎間 / 腱反射 / 運動 / 感覚」の1行に整形
+function dermatomeDetailLine(level) {
+  const di = dermatomeInfo(level);
+  if (!di) return '';
+  const parts = [
+    di.responsible_disc_level ? `責任椎間 ${di.responsible_disc_level}` : '',
+    (di.tendon_reflex && di.tendon_reflex !== '反射障害なし') ? `腱反射 ${di.tendon_reflex}(${di.tendon_reflex_change || ''})` : '',
+    di.motor_deficit ? `運動 ${di.motor_deficit.join('・')}` : '',
+    di.dermatome ? `感覚 ${di.dermatome}` : ''
+  ].filter(Boolean);
+  return parts.join(' / ');
+}
+
+// 疾患名から末梢神経支配領域を引く（related_diseases が疾患名に含まれるものを最長一致）
+function findPeripheralNerve(diseaseName) {
+  if (!PERIPHERAL || !PERIPHERAL.nerves) return null;
+  let best = null, bestLen = 0;
+  for (const nerveName of Object.keys(PERIPHERAL.nerves)) {
+    const nerve = PERIPHERAL.nerves[nerveName];
+    for (const rd of (nerve.related_diseases || [])) {
+      if (diseaseName.includes(rd) && rd.length > bestLen) { best = { name: nerveName, nerve }; bestLen = rd.length; }
+    }
+  }
+  return best;
+}
+
 // ---- 状態 ----
 const state = {
   step: 0,             // 0=部位選択, 1〜6=本フロー, 99=結果/遮断
@@ -120,14 +147,16 @@ const app = () => document.getElementById('app');
 async function init() {
   try {
     // 部位共通マスタ（治療・検査方法）を先読み
-    const [tx, methods, derm] = await Promise.all([
+    const [tx, methods, derm, periph] = await Promise.all([
       fetch('data/treatment_master.json').then(r => r.json()),
       fetch('data/test_methods.json').then(r => r.json()),
-      fetch('data/dermatome_map.json').then(r => r.json())
+      fetch('data/dermatome_map.json').then(r => r.json()),
+      fetch('data/peripheral_nerve_map.json').then(r => r.json())
     ]);
     TREATMENTS = tx[0].treatments;
     TEST_METHODS = methods.test_methods || {};
     DERMATOME = derm || null;
+    PERIPHERAL = periph || null;
     renderStep(); // step 0 = 部位選択
   } catch (e) {
     app().innerHTML = `<div class="card error">データの読み込みに失敗しました：${e.message}</div>`;
@@ -656,7 +685,8 @@ function renderTreatment() {
               <div class="bar"><div class="bar-fill" style="width:${(l.score / l.total) * 100}%"></div></div>
               <span class="level-score">${l.score}/${l.total}</span>
             </div>
-            <div class="level-signs">${l.matched.join(' / ')}</div>`).join('')}
+            <div class="level-signs">${l.matched.join(' / ')}</div>
+            ${dermatomeDetailLine(l.level) ? `<div class="derm-detail">${dermatomeDetailLine(l.level)}</div>` : ''}`).join('')}
           <p class="hint">最も示唆される高位：<strong>${levels[0].level}</strong></p>
         </div>`;
     }
@@ -726,6 +756,10 @@ function renderTreatment() {
         ${s.disease.note && !isRed ? `<p class="note">📝 ${s.disease.note}</p>` : ''}
         ${hitTxt}
         ${txHtml}
+        ${(() => {
+          const pn = findPeripheralNerve(s.disease.name);
+          return pn ? `<div class="derm-block"><div class="derm-h">末梢神経支配（${pn.name}）</div><div class="derm-row">感覚 ${pn.nerve.sensory_area}</div>${pn.nerve.motor ? `<div class="derm-row">運動 ${pn.nerve.motor}</div>` : ''}</div>` : '';
+        })()}
         ${s.disease.subtypes ? `<div class="subtypes"><div class="subtypes-h">病型（参考表示）</div>${Object.entries(s.disease.subtypes).map(([k, v]) => `<div class="subtype"><b>${k}</b> ${v}</div>`).join('')}</div>` : ''}
       </div>`;
   }).join('') : `<div class="card"><p class="lead">明確に示唆される疾患はありませんでした。問診・所見を見直してください。</p></div>`;
