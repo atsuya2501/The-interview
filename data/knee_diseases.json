@@ -1,0 +1,264 @@
+{
+  "region": "膝",
+  "branches": {
+    "変性慢性": "変性・使いすぎによる慢性疾患（鍼適応）",
+    "構造損傷": "靭帯・半月板・骨の損傷（紹介対象）",
+    "内科血管系": "関節リウマチ・感染症・血栓症（紹介対象）"
+  },
+  "diseases": [
+    {
+      "id": "knee_osteoarthritis",
+      "name": "変形性膝関節症",
+      "branch": "変性慢性",
+      "prevalence": "common",
+      "treatment_track": "局所筋骨格",
+      "composite_rule": {
+        "rule": "6項目中3つ以上で確定",
+        "items": ["50歳以上", "こわばり30分以上", "軋轢音", "関節縁に沿う骨の圧痛", "骨腫大", "温感が触知されない"],
+        "threshold": 3
+      },
+      "findings": {
+        "confirm": [
+          { "sign": "骨の腫大", "lr": 11.8, "rank": 1 },
+          { "sign": "内反変形", "lr": 3.4, "rank": 3 },
+          { "sign": "6項目中3つ以上満たす", "lr": 3.1, "rank": 3 },
+          { "sign": "こわばりが30分以下", "lr": 3.0, "rank": 3 },
+          { "sign": "受動運動による軋轢音", "lr": 2.1, "rank": 3 },
+          { "sign": "動作開始時の痛み", "lr": null, "rank": 1 },
+          { "sign": "動くと痛みが楽になる", "lr": null, "rank": 1 }
+        ],
+        "exclude": [
+          { "sign": "6項目中3つ未満", "lr": 0.1, "rank": 1 },
+          { "sign": "こわばりが30分以下(除外側の解釈)", "lr": 0.2, "rank": 2 },
+          { "sign": "受動運動による軋轢音なし", "lr": 0.2, "rank": 2 },
+          { "sign": "骨の腫大なし", "lr": 0.5, "rank": 3 }
+        ]
+      },
+      "note": "鍼適応。膝痛で最多。50歳以上・こわばり30分以上・軋轢音・関節縁の骨圧痛・骨腫大・温感なし、のうち3つ以上で疑う。骨腫大単独でLR11.8と強い"
+    },
+    {
+      "id": "knee_fracture",
+      "name": "膝の骨折",
+      "branch": "構造損傷",
+      "prevalence": "occasional",
+      "treatment_track": "要医療機関",
+      "severity": "要注意",
+      "composite_rule": {
+        "rule": "5項目中1つでも確定",
+        "items": ["55歳以上", "腓骨頭部の圧痛", "膝蓋骨のみの圧痛", "90°の屈曲が不可能", "体重負荷(4歩)が不能"],
+        "threshold": 1
+      },
+      "findings": {
+        "confirm": [
+          { "sign": "60°以上屈曲不能", "lr": 4.7, "rank": 3 },
+          { "sign": "年齢55歳以上", "lr": 3.0, "rank": 3 },
+          { "sign": "90°以上屈曲不能", "lr": 2.9, "rank": 3 },
+          { "sign": "関節の浸出液", "lr": 2.5, "rank": 3 },
+          { "sign": "突然発症・叩打痛・膝可動域減少", "lr": null, "rank": 1 }
+        ],
+        "exclude": [
+          { "sign": "関節の浸出液なし", "lr": 0.5, "rank": 3 },
+          { "sign": "90°以上屈曲不能でない", "lr": 0.5, "rank": 3 }
+        ]
+      },
+      "note": "🟡紹介対象。55歳以上・腓骨頭部圧痛・膝蓋骨のみの圧痛・90°屈曲不可・体重負荷4歩不能のうち1つでも骨折を疑う。膝蓋骨叩打の骨伝導左右差も補助所見"
+    },
+    {
+      "id": "acl_injury",
+      "name": "前十字靭帯損傷",
+      "branch": "構造損傷",
+      "prevalence": "occasional",
+      "treatment_track": "要医療機関",
+      "severity": "要注意",
+      "findings": {
+        "confirm": [
+          { "sign": "前方引き出し徴候", "lr": 17.0, "rank": 1 },
+          { "sign": "ラックマン徴候", "lr": 11.5, "rank": 1 },
+          { "sign": "ピボットシフト徴候", "lr": 8.0, "rank": 2 },
+          { "sign": "十分な伸展への抵抗", "lr": 3.2, "rank": 3 },
+          { "sign": "膝くずれ(膝折れ)", "lr": null, "rank": 1 },
+          { "sign": "膝の不安定性・関節腫脹", "lr": null, "rank": 1 }
+        ],
+        "exclude": [
+          { "sign": "ラックマン徴候陰性", "lr": 0.2, "rank": 2 },
+          { "sign": "前方引き出し徴候陰性", "lr": 0.5, "rank": 3 }
+        ]
+      },
+      "note": "🟡紹介対象。膝くずれ(膝折れ)は靭帯損傷のサイン。前方引き出し徴候LR17.0・ラックマンLR11.5は強力な確定所見"
+    },
+    {
+      "id": "pcl_injury",
+      "name": "後十字靭帯損傷",
+      "branch": "構造損傷",
+      "prevalence": "rare_redflag",
+      "treatment_track": "要医療機関",
+      "severity": "要注意",
+      "findings": {
+        "confirm": [
+          { "sign": "後方引き出しテスト陽性", "lr": null, "rank": 1 },
+          { "sign": "膝くずれ(膝折れ)", "lr": null, "rank": 1 }
+        ],
+        "exclude": []
+      },
+      "note": "🟡紹介対象。後方引き出しテストで評価。前十字靭帯損傷より頻度は低い"
+    },
+    {
+      "id": "collateral_ligament_injury",
+      "name": "側副靭帯損傷",
+      "branch": "構造損傷",
+      "prevalence": "occasional",
+      "treatment_track": "要医療機関",
+      "severity": "要注意",
+      "findings": {
+        "confirm": [
+          { "sign": "関節弛緩", "lr": null, "rank": 1 },
+          { "sign": "靭帯部の圧痛", "lr": null, "rank": 1 },
+          { "sign": "外反・内反負荷テスト陽性", "lr": null, "rank": 1 }
+        ],
+        "exclude": []
+      },
+      "note": "🟡紹介対象。内側・外側側副靭帯損傷。外反/内反負荷テストで評価"
+    },
+    {
+      "id": "meniscus_injury",
+      "name": "半月板損傷",
+      "branch": "構造損傷",
+      "prevalence": "occasional",
+      "treatment_track": "要医療機関",
+      "severity": "要注意",
+      "findings": {
+        "confirm": [
+          { "sign": "マックマレー徴候", "lr": 8.2, "rank": 2 },
+          { "sign": "十分な伸展への抵抗", "lr": 3.2, "rank": 3 },
+          { "sign": "膝のロッキング・クリッキング", "lr": null, "rank": 1 }
+        ],
+        "exclude": []
+      },
+      "note": "🟡紹介対象。膝のロッキングは半月板損傷のサイン。マックマレー徴候(膝屈曲+脛骨回旋、内旋で外側半月・外旋で内側半月に負荷)で評価"
+    },
+    {
+      "id": "rheumatoid_arthritis_knee",
+      "name": "関節リウマチ",
+      "branch": "内科血管系",
+      "prevalence": "occasional",
+      "treatment_track": "要医療機関",
+      "severity": "要注意",
+      "findings": {
+        "confirm": [
+          { "sign": "朝のこわばり", "lr": null, "rank": 1 },
+          { "sign": "指の変形(スワンネック・ボタンホール変形)", "lr": null, "rank": 1 },
+          { "sign": "熱感・発赤・腫脹", "lr": null, "rank": 2 }
+        ],
+        "exclude": []
+      },
+      "note": "🟡紹介対象。朝のこわばり・手指の特徴的変形を伴う場合。全身性疾患のため受診勧奨"
+    },
+    {
+      "id": "septic_arthritis_knee",
+      "name": "感染性関節炎",
+      "branch": "内科血管系",
+      "prevalence": "rare_redflag",
+      "treatment_track": "要医療機関",
+      "severity": "要注意",
+      "findings": {
+        "confirm": [
+          { "sign": "発熱", "lr": null, "rank": 1 },
+          { "sign": "関節の浸出液", "lr": null, "rank": 1 }
+        ],
+        "exclude": []
+      },
+      "note": "🟡紹介対象。発熱+浸出液は感染症の可能性。進行すると関節破壊・敗血症リスク。早期受診が重要"
+    },
+    {
+      "id": "dvt_knee",
+      "name": "深部静脈血栓症",
+      "branch": "内科血管系",
+      "prevalence": "occasional",
+      "treatment_track": "要医療機関",
+      "severity": "要注意",
+      "findings": {
+        "confirm": [
+          { "sign": "足の麻痺", "lr": null, "rank": 1 },
+          { "sign": "下肢の著明な圧痛", "lr": null, "rank": 1 },
+          { "sign": "ふくらはぎの腫脹", "lr": null, "rank": 1 },
+          { "sign": "長期間の臥床・寝たきり状態", "lr": null, "rank": 2 }
+        ],
+        "exclude": []
+      },
+      "note": "🟡紹介対象。ふくらはぎ腫脹・著明な圧痛・長期臥床歴。大腿マスタのDVTと同系列。肺塞栓の塞栓源になりうるため鍼刺激は禁忌の可能性"
+    },
+    {
+      "id": "pseudogout_knee",
+      "name": "偽痛風",
+      "branch": "内科血管系",
+      "prevalence": "rare_redflag",
+      "treatment_track": "要医療機関",
+      "severity": "要注意",
+      "note": "🟡紹介対象。急性の関節炎症状。結晶誘発性関節炎"
+    },
+    {
+      "id": "pes_anserine_bursitis",
+      "name": "鵞足部滑液包炎",
+      "branch": "変性慢性",
+      "prevalence": "common",
+      "treatment_track": "局所筋骨格",
+      "findings": {
+        "confirm": [
+          { "sign": "鵞足部の腫脹", "lr": null, "rank": 1 },
+          { "sign": "横になり足をそろえて寝るときに疼痛が悪化", "lr": null, "rank": 1 }
+        ],
+        "exclude": []
+      },
+      "note": "鍼適応。膝内側下方の鵞足部の腫脹・圧痛。就寝時の体位で増悪"
+    },
+    {
+      "id": "patellar_tendinitis",
+      "name": "膝蓋腱炎",
+      "branch": "変性慢性",
+      "prevalence": "common",
+      "treatment_track": "局所筋骨格",
+      "note": "鍼適応。膝蓋骨下方の腱付着部痛。ジャンプ動作の多いスポーツで増悪"
+    },
+    {
+      "id": "bakers_cyst",
+      "name": "ベーカー嚊胞",
+      "branch": "変性慢性",
+      "prevalence": "occasional",
+      "treatment_track": "局所筋骨格",
+      "findings": {
+        "confirm": [
+          { "sign": "膝窩部に充満感や圧迫感", "lr": null, "rank": 1 },
+          { "sign": "屈曲が制限される", "lr": null, "rank": 2 }
+        ],
+        "exclude": []
+      },
+      "note": "鍼適応(変形性膝関節症に伴うものが多い)。膝窩部の充満感・屈曲制限。基礎疾患の治療と並行"
+    },
+    {
+      "id": "saphenous_nerve_entrapment",
+      "name": "伏在神経絞扼",
+      "branch": "変性慢性",
+      "prevalence": "occasional",
+      "treatment_track": "局所筋骨格",
+      "note": "鍼適応。膝内側〜下腿内側のしびれ・痛み。内転筋管での絞扼"
+    },
+    {
+      "id": "upper_lumbar_radiculopathy_knee",
+      "name": "上位腰椎神経障害",
+      "branch": "変性慢性",
+      "prevalence": "common",
+      "treatment_track": "腰橋渡し",
+      "referral_to_lumbar": true,
+      "dermatome_ref": ["L3", "L4"],
+      "findings": {
+        "confirm": [
+          { "sign": "膝蓋腱反射の消失", "lr": null, "rank": 1 },
+          { "sign": "大腿四頭筋の筋力低下", "lr": null, "rank": 1 },
+          { "sign": "FNS陽性", "lr": null, "rank": 1 }
+        ],
+        "exclude": []
+      },
+      "note": "腰由来。膝蓋腱反射消失・大腿四頭筋筋力低下・FNS陽性。実体は上位腰椎(L3/L4)。dermatome_map参照で高位推定。腰マスタに橋渡し"
+    }
+  ]
+}

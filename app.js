@@ -30,7 +30,8 @@ const REGIONS = {
   hand:   { label: '手', desc: '手首・手指',         file: 'data/hand_diseases.json',   wrapped: false },
   chest:  { label: '胸', desc: '胸部・胸壁',         file: 'data/chest_diseases.json',  wrapped: false },
   abdomen: { label: '腹', desc: '腹部・消化器',      file: 'data/abdomen_diseases.json', wrapped: false },
-  thigh:  { label: '大腿', desc: '太もも・股関節',   file: 'data/thigh_diseases.json',  wrapped: false }
+  thigh:  { label: '大腿', desc: '太もも・股関節',   file: 'data/thigh_diseases.json',  wrapped: false },
+  knee:   { label: '膝', desc: '膝関節・膝周囲',     file: 'data/knee_diseases.json',   wrapped: false }
 };
 
 // ---- 設定（エンジンのチューニング箇所はここに集約） ----
@@ -760,6 +761,7 @@ function renderTreatment() {
           const pn = findPeripheralNerve(s.disease.name);
           return pn ? `<div class="derm-block"><div class="derm-h">末梢神経支配（${pn.name}）</div><div class="derm-row">感覚 ${pn.nerve.sensory_area}</div>${pn.nerve.motor ? `<div class="derm-row">運動 ${pn.nerve.motor}</div>` : ''}</div>` : '';
         })()}
+        ${s.disease.composite_rule ? `<div class="subtypes"><div class="subtypes-h">複合判定：${s.disease.composite_rule.rule}</div>${s.disease.composite_rule.items.map(it => `<div class="subtype">・${it}</div>`).join('')}</div>` : ''}
         ${s.disease.subtypes ? `<div class="subtypes"><div class="subtypes-h">病型（参考表示）</div>${Object.entries(s.disease.subtypes).map(([k, v]) => `<div class="subtype"><b>${k}</b> ${v}</div>`).join('')}</div>` : ''}
       </div>`;
   }).join('') : `<div class="card"><p class="lead">明確に示唆される疾患はありませんでした。問診・所見を見直してください。</p></div>`;
