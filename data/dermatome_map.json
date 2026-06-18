@@ -1,0 +1,53 @@
+{
+  "description": "神経根デルマトーム及び椎間板・椎間関節からの関連痛パターン。本のイラストではなく領域データとして保持し、アプリ側でSVGに描画する",
+  "regions": {
+    "下肢": {
+      "nerve_roots": ["L3", "L4", "L5", "S1"],
+      "source_structures": ["椎間板(棘突起間隙)", "椎間関節", "棘間靭帯"],
+      "patterns": {
+        "L3": {
+          "referred_pain_areas": {
+            "anterior": ["大腿前面", "大腿内側", "膝内側"],
+            "posterior": ["殿部", "大腿後面上部"]
+          },
+          "dermatome": "大腿前面〜膝内側",
+          "associated_lumbar_level": "L2/L3椎間",
+          "note": "大腿前面から膝の内側にかけて。膝を越えにくい"
+        },
+        "L4": {
+          "referred_pain_areas": {
+            "anterior": ["大腿前外側", "膝", "下腿内側"],
+            "posterior": ["殿部外側", "大腿後外側"]
+          },
+          "dermatome": "下腿内側〜内果",
+          "associated_lumbar_level": "L3/L4椎間",
+          "note": "膝を越えて下腿内側まで。膝蓋腱反射に関与"
+        },
+        "L5": {
+          "referred_pain_areas": {
+            "anterior": ["大腿外側", "下腿前外側", "足背", "母趾"],
+            "posterior": ["殿部", "大腿後面", "下腿外側"]
+          },
+          "dermatome": "下腿前外側〜足背〜母趾",
+          "associated_lumbar_level": "L4/L5椎間",
+          "note": "下腿外側から足背・母趾まで。最も広範囲に放散"
+        },
+        "S1": {
+          "referred_pain_areas": {
+            "anterior": ["大腿外側", "下腿外側"],
+            "posterior": ["殿部", "大腿後面", "下腿後面", "踵", "足底", "小趾"]
+          },
+          "dermatome": "下腿後面〜踵〜足底〜小趾",
+          "associated_lumbar_level": "L5/S1椎間",
+          "note": "大腿後面から踵・足底・小趾まで。アキレス腱反射に関与"
+        }
+      }
+    },
+    "上肢": {
+      "nerve_roots": ["C5", "C6", "C7", "C8", "T1"],
+      "source_structures": ["頸椎椎間板", "頸椎椎間関節"],
+      "patterns": {},
+      "_note": "枠のみ用意。腕版（頸椎神経根C5-T1）のデータは後日投入予定。投入後は首・肩・肘・手の神経根症レコードが参照する"
+    }
+  }
+}

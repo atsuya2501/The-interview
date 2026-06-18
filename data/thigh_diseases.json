@@ -1,0 +1,200 @@
+{
+  "region": "大腿",
+  "references": ["dermatome_map.json#下肢"],
+  "branches": {
+    "前面": "大腿前面の痛み。神経絞扼・上位腰椎・筋損傷・股関節",
+    "後面": "大腿後面の痛み。腰由来関連痛・ハムストリングス・坐骨",
+    "内側": "大腿内側の痛み。DVT・内転筋・腸腰筋"
+  },
+  "diseases": [
+    {
+      "id": "lateral_femoral_cutaneous_thigh",
+      "name": "外側大腿皮神経症候群",
+      "branch": "前面",
+      "prevalence": "occasional",
+      "treatment_track": "局所筋骨格",
+      "findings": {
+        "confirm": [
+          { "sign": "股関節屈曲時で痛みやしびれ増強", "lr": null, "rank": 1 },
+          { "sign": "大腿前外側のしびれ・知覚異常", "lr": null, "rank": 1 },
+          { "sign": "鼠径靭帯部での絞扼", "lr": null, "rank": 2 }
+        ],
+        "exclude": []
+      },
+      "note": "鍼適応。大腿前外側のしびれ・知覚異常(知覚異常性大腿神経痛, meralgia paresthetica)。鼠径靭帯下での外側大腿皮神経絞扼。股関節屈曲で増悪"
+    },
+    {
+      "id": "upper_lumbar_radiculopathy_thigh",
+      "name": "上位腰椎神経障害",
+      "branch": "前面",
+      "prevalence": "common",
+      "treatment_track": "腰橋渡し",
+      "referral_to_lumbar": true,
+      "dermatome_ref": ["L3", "L4"],
+      "findings": {
+        "confirm": [
+          { "sign": "大腿前面の痛み・しびれ", "lr": null, "rank": 1 },
+          { "sign": "FNS陽性", "lr": null, "rank": 1 },
+          { "sign": "膝蓋腱反射の消失", "lr": null, "rank": 2 },
+          { "sign": "大腿四頭筋の筋力低下", "lr": null, "rank": 2 }
+        ],
+        "exclude": []
+      },
+      "note": "腰由来。大腿前面の痛み・しびれ・FNS陽性・膝蓋腱反射消失。実体は上位腰椎(L2-L4)。dermatome L3/L4で高位推定。腰マスタに橋渡し"
+    },
+    {
+      "id": "quadriceps_injury",
+      "name": "大腿四頭筋損傷・断裂",
+      "branch": "前面",
+      "prevalence": "occasional",
+      "treatment_track": "局所筋骨格",
+      "findings": {
+        "confirm": [
+          { "sign": "大腿前面の損傷・断裂", "lr": null, "rank": 1 },
+          { "sign": "スポーツ・外傷契機", "lr": null, "rank": 2 }
+        ],
+        "exclude": []
+      },
+      "note": "鍼適応(急性断裂は除く)。大腿前面の筋損傷。スポーツ外傷に多い。完全断裂は要医療機関"
+    },
+    {
+      "id": "hip_oa_thigh",
+      "name": "変形性股関節症",
+      "branch": "前面",
+      "prevalence": "common",
+      "treatment_track": "局所筋骨格",
+      "findings": {
+        "confirm": [
+          { "sign": "動作開始時の痛み", "lr": null, "rank": 1 },
+          { "sign": "動くと痛みが楽になる", "lr": null, "rank": 2 },
+          { "sign": "FNS陽性", "lr": null, "rank": 2 }
+        ],
+        "exclude": []
+      },
+      "note": "鍼適応。動作開始時痛・動くと楽。大腿前面〜鼠径に放散。臀部マスタと共通(股関節徴候で確定)"
+    },
+    {
+      "id": "facet_lumbago_thigh",
+      "name": "椎間関節性腰痛",
+      "branch": "後面",
+      "prevalence": "common",
+      "treatment_track": "腰橋渡し",
+      "referral_to_lumbar": true,
+      "findings": {
+        "confirm": [
+          { "sign": "胸腰椎の後側屈時の痛み", "lr": null, "rank": 1 },
+          { "sign": "障害高位夾脊穴の圧痛", "lr": null, "rank": 1 },
+          { "sign": "膝を越えない範囲の関連痛", "lr": null, "rank": 1 }
+        ],
+        "exclude": []
+      },
+      "note": "腰由来。後側屈で痛む・夾脊穴圧痛・膝を越えない関連痛。実体は腰椎椎間関節。腰マスタに橋渡し"
+    },
+    {
+      "id": "disc_lumbago_thigh",
+      "name": "椎間板性腰痛",
+      "branch": "後面",
+      "prevalence": "common",
+      "treatment_track": "腰橋渡し",
+      "referral_to_lumbar": true,
+      "findings": {
+        "confirm": [
+          { "sign": "胸腰椎後側屈時の痛み", "lr": null, "rank": 1 }
+        ],
+        "exclude": []
+      },
+      "note": "腰由来。実体は腰椎椎間板。腰マスタに橋渡し"
+    },
+    {
+      "id": "hamstring_injury",
+      "name": "ハムストリングス損傷・断裂",
+      "branch": "後面",
+      "prevalence": "occasional",
+      "treatment_track": "局所筋骨格",
+      "findings": {
+        "confirm": [
+          { "sign": "大腿後面の損傷・断裂", "lr": null, "rank": 1 },
+          { "sign": "ダッシュ・伸展契機", "lr": null, "rank": 2 }
+        ],
+        "exclude": []
+      },
+      "note": "鍼適応(急性断裂除く)。大腿後面の肉離れ。スプリント時に多い"
+    },
+    {
+      "id": "ischial_tuberosity_syndrome",
+      "name": "坐骨結節症候群",
+      "branch": "後面",
+      "prevalence": "occasional",
+      "treatment_track": "局所筋骨格",
+      "note": "鍼適応。坐骨結節部(ハムストリングス起始部)の痛み。長時間座位で増悪"
+    },
+    {
+      "id": "sciatica_thigh",
+      "name": "坐骨神経痛",
+      "branch": "後面",
+      "prevalence": "common",
+      "treatment_track": "腰橋渡し",
+      "referral_to_lumbar": true,
+      "dermatome_ref": ["L5", "S1"],
+      "findings": {
+        "confirm": [
+          { "sign": "梨状筋部の圧痛", "lr": null, "rank": 1 },
+          { "sign": "SLR陽性所見", "lr": null, "rank": 1 },
+          { "sign": "坐骨神経の走行に沿った痛み", "lr": null, "rank": 1 }
+        ],
+        "exclude": []
+      },
+      "note": "腰由来が多い。大腿後面〜下腿への放散。SLR陽性・坐骨神経走行に沿う。dermatome L5/S1で高位推定。腰椎原因なら橋渡し、梨状筋性なら局所"
+    },
+    {
+      "id": "dvt_thigh",
+      "name": "深部静脈血栓症",
+      "branch": "内側",
+      "prevalence": "occasional",
+      "treatment_track": "要医療機関",
+      "severity": "要注意",
+      "findings": {
+        "confirm": [
+          { "sign": "浮腫", "lr": null, "rank": 1 },
+          { "sign": "鋭い動作時痛", "lr": null, "rank": 1 },
+          { "sign": "一側性の腫脹", "lr": null, "rank": 1 }
+        ],
+        "exclude": []
+      },
+      "note": "🟡浮腫・一側性腫脹・鋭い動作時痛。肺塞栓の塞栓源になりうる。マッサージ・鍼刺激は禁忌の可能性。浮腫＋一側性＋動作時痛が揃えば受診勧奨を強める"
+    },
+    {
+      "id": "adductor_injury",
+      "name": "内転筋損傷",
+      "branch": "内側",
+      "prevalence": "occasional",
+      "treatment_track": "局所筋骨格",
+      "note": "鍼適応(急性断裂除く)。大腿内側の肉離れ。方向転換・キック動作で多い"
+    },
+    {
+      "id": "iliopsoas_injury",
+      "name": "腸腰筋損傷・滑液包炎",
+      "branch": "内側",
+      "prevalence": "occasional",
+      "treatment_track": "局所筋骨格",
+      "note": "鍼適応。鼠径部〜大腿内側上部の痛み。股関節屈曲で増悪。腸腰筋滑液包炎含む"
+    },
+    {
+      "id": "femoral_neck_fracture_thigh",
+      "name": "大腿骨頚部骨折",
+      "branch": "前面",
+      "prevalence": "occasional",
+      "treatment_track": "要医療機関",
+      "severity": "要注意",
+      "findings": {
+        "confirm": [
+          { "sign": "膝蓋骨叩打での骨伝導左右差", "lr": null, "rank": 1 },
+          { "sign": "歩行困難", "lr": null, "rank": 1 },
+          { "sign": "外傷の有無", "lr": null, "rank": 2 }
+        ],
+        "exclude": []
+      },
+      "note": "🟡高齢者の転倒後。恥骨結合に聴診器を当て左右の膝蓋骨を叩打、骨伝導が落ちている側に骨折。受診勧奨"
+    }
+  ]
+}

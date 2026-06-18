@@ -131,6 +131,12 @@ h3 { font-size: .95rem; margin: .9rem 0 .4rem; color: var(--primary); }
 .obs-h { font-weight: 700; font-size: .9rem; color: var(--primary); margin-bottom: .3rem; }
 .obs-block p { font-size: .84rem; }
 
+/* dermatome reference */
+.derm-block { margin-top: .5rem; border: 1px solid #d6e4d6; background: #f1f8f1; border-radius: 10px; padding: .6rem .75rem; }
+.derm-h { font-size: .78rem; font-weight: 700; color: var(--green); margin-bottom: .3rem; }
+.derm-row { font-size: .82rem; padding: .1rem 0; }
+.derm-row b { color: var(--primary); margin-right: .4rem; }
+
 /* treatment */
 .tx-block { margin-top: .6rem; }
 .tx-track { font-size: .85rem; margin-bottom: .5rem; }

@@ -16,6 +16,7 @@ let BRANCHES = {};     // 選択中部位の branch 説明
 let TREATMENTS = [];   // 治療マスタ（部位共通）
 let TEST_METHODS = {}; // 検査名 → 実施方法（部位共通）
 let PERITONEAL = null; // 腹膜刺激徴候オーバーライド（腹部のみ）
+let DERMATOME = null;  // 神経根デルマトームマップ（共有リソース）
 
 // 部位定義。wrapped=true は [{...}] の配列ラップ（首）、false は素のオブジェクト（頭・腰）。
 const REGIONS = {
@@ -27,7 +28,8 @@ const REGIONS = {
   elbow:  { label: '肘', desc: '肘・前腕',           file: 'data/elbow_diseases.json',  wrapped: false },
   hand:   { label: '手', desc: '手首・手指',         file: 'data/hand_diseases.json',   wrapped: false },
   chest:  { label: '胸', desc: '胸部・胸壁',         file: 'data/chest_diseases.json',  wrapped: false },
-  abdomen: { label: '腹', desc: '腹部・消化器',      file: 'data/abdomen_diseases.json', wrapped: false }
+  abdomen: { label: '腹', desc: '腹部・消化器',      file: 'data/abdomen_diseases.json', wrapped: false },
+  thigh:  { label: '大腿', desc: '太もも・股関節',   file: 'data/thigh_diseases.json',  wrapped: false }
 };
 
 // ---- 設定（エンジンのチューニング箇所はここに集約） ----
@@ -70,7 +72,8 @@ const TRACK_MAP = {
   '心理社会的': t => t.level === '脳',
   '自律神経':   t => t.id === 'somato_autonomic_reflex' || t.id === 'autonomic_regulation' || t.id === 'descending_inhibition',
   '要医療機関': () => false,
-  '経過観察':   () => false
+  '経過観察':   () => false,
+  '腰橋渡し':   () => false
 };
 const TRACK_NOTE = {
   '局所筋骨格': '痛みの局所（末梢レベル）への治療が中心。',
@@ -78,8 +81,19 @@ const TRACK_NOTE = {
   '心理社会的': '脳レベルへの働きかけ（自律神経調整など）を中心に。',
   '自律神経':   '体性-自律神経反射・脳レベルの調整を中心に。',
   '要医療機関': '鍼治療の対象外。医療機関での対応が必要。',
-  '経過観察':   '鍼の適応となりうるが、改善しなければ受診勧奨。'
+  '経過観察':   '鍼の適応となりうるが、改善しなければ受診勧奨。',
+  '腰橋渡し':   '腰由来の関連痛の可能性。腰の鑑別を参照。'
 };
+
+// 神経根レベル（L3等）のデルマトーム情報を全領域から検索
+function dermatomeInfo(level) {
+  if (!DERMATOME || !DERMATOME.regions) return null;
+  for (const rk of Object.keys(DERMATOME.regions)) {
+    const p = DERMATOME.regions[rk].patterns && DERMATOME.regions[rk].patterns[level];
+    if (p) return p;
+  }
+  return null;
+}
 
 // ---- 状態 ----
 const state = {
@@ -106,12 +120,14 @@ const app = () => document.getElementById('app');
 async function init() {
   try {
     // 部位共通マスタ（治療・検査方法）を先読み
-    const [tx, methods] = await Promise.all([
+    const [tx, methods, derm] = await Promise.all([
       fetch('data/treatment_master.json').then(r => r.json()),
-      fetch('data/test_methods.json').then(r => r.json())
+      fetch('data/test_methods.json').then(r => r.json()),
+      fetch('data/dermatome_map.json').then(r => r.json())
     ]);
     TREATMENTS = tx[0].treatments;
     TEST_METHODS = methods.test_methods || {};
+    DERMATOME = derm || null;
     renderStep(); // step 0 = 部位選択
   } catch (e) {
     app().innerHTML = `<div class="card error">データの読み込みに失敗しました：${e.message}</div>`;
@@ -651,7 +667,8 @@ function renderTreatment() {
   const sugHtml = suggestions.length ? suggestions.map((s, i) => {
     const txs = treatmentsForTrack(s.disease.treatment_track);
     const isObs = s.disease.treatment_track === '経過観察';
-    const isRed = !isObs && (s.disease.prevalence === 'rare_redflag' || s.disease.treatment_track === '要医療機関');
+    const isReferral = s.disease.treatment_track === '腰橋渡し';
+    const isRed = !isObs && !isReferral && (s.disease.prevalence === 'rare_redflag' || s.disease.treatment_track === '要医療機関');
     const hitTxt = s.hits.length
       ? `<ul class="hit-list">${s.hits.map(h =>
           `<li>${h.sign} <span class="${h.contrib > 0 ? 'plus' : 'minus'}">${h.contrib > 0 ? '+' : ''}${h.contrib}</span></li>`).join('')}</ul>`
@@ -668,10 +685,21 @@ function renderTreatment() {
       </div>`;
     })();
 
+    const dermHtml = s.disease.dermatome_ref && s.disease.dermatome_ref.length
+      ? `<div class="derm-block"><div class="derm-h">高位推定（デルマトーム参照）</div>${s.disease.dermatome_ref.map(lv => {
+          const p = dermatomeInfo(lv);
+          return `<div class="derm-row"><b>${lv}</b> ${p ? p.dermatome : '（マップ未登録）'}</div>`;
+        }).join('')}</div>`
+      : '';
+
+    const referralHtml = `<div class="obs-block"><p class="obs-h">↩ 腰橋渡し</p><p>腰由来の関連痛の可能性。<b>腰の鑑別（腰マスタ）</b>を参照してください。${s.disease.note ? '<br>' + s.disease.note : ''}</p></div>${dermHtml}`;
+
     const txHtml = isRed
       ? `<div class="alert red"><strong>要医療機関</strong><p>${TRACK_NOTE['要医療機関']}${s.disease.note ? '<br>' + s.disease.note : ''}</p></div>`
       : isObs
       ? obsHtml
+      : isReferral
+      ? referralHtml
       : `<div class="tx-block">
            <p class="tx-track">治療方針：<strong>${s.disease.treatment_track}</strong> — ${TRACK_NOTE[s.disease.treatment_track] || ''}</p>
            ${txs.map(t => `
