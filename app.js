@@ -31,7 +31,8 @@ const REGIONS = {
   chest:  { label: '胸', desc: '胸部・胸壁',         file: 'data/chest_diseases.json',  wrapped: false },
   abdomen: { label: '腹', desc: '腹部・消化器',      file: 'data/abdomen_diseases.json', wrapped: false },
   thigh:  { label: '大腿', desc: '太もも・股関節',   file: 'data/thigh_diseases.json',  wrapped: false },
-  knee:   { label: '膝', desc: '膝関節・膝周囲',     file: 'data/knee_diseases.json',   wrapped: false }
+  knee:   { label: '膝', desc: '膝関節・膝周囲',     file: 'data/knee_diseases.json',   wrapped: false },
+  lower_leg: { label: '下腿', desc: 'ふくらはぎ・すね', file: 'data/lower_leg_diseases.json', wrapped: false }
 };
 
 // ---- 設定（エンジンのチューニング箇所はここに集約） ----

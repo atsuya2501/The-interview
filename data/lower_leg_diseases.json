@@ -1,0 +1,149 @@
+{
+  "region": "下腿",
+  "branches": {
+    "筋軟部組織": "腓腹筋・ヒラメ筋など筋肉の炎症・損傷（鍼適応）",
+    "血管神経系": "DVT・蜂窩織炎・コンパートメント症候群（紹介対象、一部緊急）",
+    "骨関連痛": "脛骨骨頭壊死・腰由来の関連痛"
+  },
+  "diseases": [
+    {
+      "id": "compartment_syndrome",
+      "name": "コンパートメント症候群",
+      "branch": "血管神経系",
+      "prevalence": "rare_redflag",
+      "treatment_track": "要医療機関",
+      "severity": "緊急",
+      "findings": {
+        "confirm": [
+          { "sign": "他動的な伸長で増悪する著明な疼痛", "lr": null, "rank": 1 },
+          { "sign": "腫脹", "lr": null, "rank": 1 },
+          { "sign": "感覚障害", "lr": null, "rank": 1 },
+          { "sign": "蒼白", "lr": null, "rank": 2 },
+          { "sign": "脈拍触知不良", "lr": null, "rank": 1 }
+        ],
+        "exclude": []
+      },
+      "note": "🔴遮断。5P徴候(疼痛・腫脹・感覚障害・蒼白・脈拍触知不良)。特に他動伸長での疼痛増悪が特徴的。筋膜区画内圧上昇により6時間以内の減圧が必要とされる。見逃すと不可逆的な筋・神経壊死。直ちに救急"
+    },
+    {
+      "id": "dvt_lower_leg",
+      "name": "深部静脈血栓症",
+      "branch": "血管神経系",
+      "prevalence": "occasional",
+      "treatment_track": "要医療機関",
+      "severity": "要注意",
+      "findings": {
+        "confirm": [
+          { "sign": "ふくらはぎのこむら返り", "lr": null, "rank": 1 },
+          { "sign": "下肢のむくみや冷え", "lr": null, "rank": 1 },
+          { "sign": "SLR陽性", "lr": null, "rank": 2 },
+          { "sign": "FNS陽性", "lr": null, "rank": 2 },
+          { "sign": "片足だけの熱感や腫脹", "lr": null, "rank": 1 }
+        ],
+        "exclude": []
+      },
+      "note": "🟡紹介対象。ふくらはぎのこむら返り・むくみ・片側性の熱感腫脹。大腿・膝のDVTと同系列。肺塞栓の塞栓源になりうるため鍼刺激は禁忌の可能性"
+    },
+    {
+      "id": "cellulitis_lower_leg",
+      "name": "蜂窩織炎",
+      "branch": "血管神経系",
+      "prevalence": "occasional",
+      "treatment_track": "要医療機関",
+      "severity": "要注意",
+      "findings": {
+        "confirm": [
+          { "sign": "広範囲が赤く硬く腫れる", "lr": null, "rank": 1 },
+          { "sign": "発熱", "lr": null, "rank": 1 },
+          { "sign": "寒気", "lr": null, "rank": 2 }
+        ],
+        "exclude": []
+      },
+      "note": "🟡紹介対象。広範囲の発赤・硬結・腫脹・発熱・寒気。感染症として抗生剤治療が必要"
+    },
+    {
+      "id": "tibial_head_necrosis",
+      "name": "脛骨骨頭壊死",
+      "branch": "骨関連痛",
+      "prevalence": "rare_redflag",
+      "treatment_track": "要医療機関",
+      "severity": "要注意",
+      "note": "🟡紹介対象。脛骨近位部の壊死。大腿骨頭壊死と同系列。ステロイド使用歴等に注意"
+    },
+    {
+      "id": "upper_lumbar_radiculopathy_lower_leg",
+      "name": "上位腰椎神経障害",
+      "branch": "骨関連痛",
+      "prevalence": "common",
+      "treatment_track": "腰橋渡し",
+      "referral_to_lumbar": true,
+      "dermatome_ref": ["L3", "L4"],
+      "note": "腰由来。実体は上位腰椎(L3/L4)。dermatome_map参照で高位推定。腰マスタに橋渡し"
+    },
+    {
+      "id": "lower_lumbar_radiculopathy_lower_leg",
+      "name": "下位腰椎神経障害",
+      "branch": "骨関連痛",
+      "prevalence": "common",
+      "treatment_track": "腰橋渡し",
+      "referral_to_lumbar": true,
+      "dermatome_ref": ["L5", "S1"],
+      "findings": {
+        "confirm": [
+          { "sign": "SLR陽性", "lr": null, "rank": 1 },
+          { "sign": "FNS陽性または陰性(高位による)", "lr": null, "rank": 2 }
+        ],
+        "exclude": []
+      },
+      "note": "腰由来。下腿前外側〜後面のしびれ・放散痛。実体は下位腰椎(L4-S1)。dermatome_map参照で高位推定。腰マスタに橋渡し"
+    },
+    {
+      "id": "knee_oa_referred_lower_leg",
+      "name": "変形性膝関節症由来の関連痛",
+      "branch": "骨関連痛",
+      "prevalence": "common",
+      "treatment_track": "局所筋骨格",
+      "findings": {
+        "confirm": [
+          { "sign": "動作開始時痛、動くと痛みが楽になる", "lr": null, "rank": 1 },
+          { "sign": "膝の痛みや腫脹を併発", "lr": null, "rank": 1 }
+        ],
+        "exclude": [
+          { "sign": "膝の痛みや腫脹がない", "lr": null, "rank": 2 }
+        ]
+      },
+      "note": "鍼適応。膝マスタの変形性膝関節症と連動。膝の痛みが先行し下腿に関連痛が及ぶ"
+    },
+    {
+      "id": "gastrocnemius_strain",
+      "name": "腓腹筋の損傷・断裂",
+      "branch": "筋軟部組織",
+      "prevalence": "common",
+      "treatment_track": "局所筋骨格",
+      "findings": {
+        "confirm": [
+          { "sign": "ふくらはぎの損傷・断裂", "lr": null, "rank": 1 },
+          { "sign": "こむら返り", "lr": null, "rank": 2 }
+        ],
+        "exclude": []
+      },
+      "note": "鍼適応(完全断裂除く)。ふくらはぎ内側の肉離れ。テニスレッグとも呼ばれる"
+    },
+    {
+      "id": "soleus_strain",
+      "name": "ヒラメ筋の損傷",
+      "branch": "筋軟部組織",
+      "prevalence": "common",
+      "treatment_track": "局所筋骨格",
+      "note": "鍼適応。下腿深部の筋損傷。腓腹筋より深層で血管循環への影響もある（第2の心臓としての役割）"
+    },
+    {
+      "id": "medial_tibial_stress_syndrome",
+      "name": "下腿のコンパートメント周辺の労作性疼痛(シンスプリント様)",
+      "branch": "筋軟部組織",
+      "prevalence": "occasional",
+      "treatment_track": "局所筋骨格",
+      "note": "鍼適応。運動時の下腿内側〜前面の疼痛。長時間の歩行・ランニングで増悪"
+    }
+  ]
+}
