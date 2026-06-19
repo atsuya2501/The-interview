@@ -33,7 +33,8 @@ const REGIONS = {
   thigh:  { label: '大腿', desc: '太もも・股関節',   file: 'data/thigh_diseases.json',  wrapped: false },
   knee:   { label: '膝', desc: '膝関節・膝周囲',     file: 'data/knee_diseases.json',   wrapped: false },
   lower_leg: { label: '下腿', desc: 'ふくらはぎ・すね', file: 'data/lower_leg_diseases.json', wrapped: false },
-  foot:   { label: '足部', desc: '足・足関節・足趾', file: 'data/foot_diseases.json',    wrapped: false }
+  foot:   { label: '足部', desc: '足・足関節・足趾', file: 'data/foot_diseases.json',    wrapped: false },
+  systemic: { label: '全身', desc: '全身が痛い・全身性疾患', file: 'data/systemic_diseases.json', wrapped: false }
 };
 
 // ---- 設定（エンジンのチューニング箇所はここに集約） ----
@@ -173,16 +174,22 @@ function normSeverity(sev) {
   return undefined; // '無印' / undefined
 }
 
-// treatment_track を内部正準トラックに正規化（部位ごとの記述的トラックを吸収）
+// treatment_track を内部正準トラックに正規化（部位ごとの記述的トラックを吸収）。
+// severity（警告/遮断）とは分離：トラックは「どのカードを出すか」だけを決める。
+const MEDICAL_TRACKS = new Set(['要医療機関', '緊急医療', '骨折', '靭帯捻挫', '腱断裂', '痛風']);
+const ACU_TRACKS = new Set(['局所筋骨格', '神経系', '心理社会的', '自律神経',
+  '全身調整・対症', '末梢神経絞扼', '足底腱膜・筋膜', '腱・腱付着部',
+  '変形・アライメント', '変形性関節症', '骨・付着部', '対症・足底ケア']);
 function canonTrack(d) {
   const t = d.treatment_track;
   if (t === '経過観察') return '経過観察';
-  if (t === '腰部参照' || t === '腰橋渡し' || d.referral_to_lumbar) return '腰橋渡し';
-  const sev = normSeverity(d.severity);
-  if (sev === '緊急' || sev === '要注意') return '要医療機関';
-  if (t === '要医療機関' || t === '緊急医療') return '要医療機関';
+  if (t === '腰部参照' || t === '頭部参照' || t === '腰橋渡し' || d.referral_to_lumbar || d.referral_to_head) return '腰橋渡し';
+  if (MEDICAL_TRACKS.has(t)) return '要医療機関';
   if (t === '局所筋骨格' || t === '神経系' || t === '心理社会的' || t === '自律神経') return t;
-  return '局所筋骨格'; // 記述的トラック（鍼適応）は局所筋骨格に集約
+  if (ACU_TRACKS.has(t)) return '局所筋骨格'; // 記述的な鍼適応トラックは局所筋骨格に集約
+  // 未知トラック：severityで医療/局所を判定
+  const sev = normSeverity(d.severity);
+  return (sev === '緊急' || sev === '要注意') ? '要医療機関' : '局所筋骨格';
 }
 
 // 選択部位の疾患マスタを読み込み、内部正準形に正規化する
@@ -774,7 +781,9 @@ function renderTreatment() {
         }).join('')}</div>`
       : '';
 
-    const referralHtml = `<div class="obs-block"><p class="obs-h">↩ 腰橋渡し</p><p>腰由来の関連痛の可能性。<b>腰の鑑別（腰マスタ）</b>を参照してください。${s.disease.note ? '<br>' + s.disease.note : ''}</p></div>${dermHtml}`;
+    const refTarget = (s.disease.referral && s.disease.referral.to)
+      || (s.disease.referral_to_head ? '頭部マスタ／専門科' : '腰の鑑別（腰マスタ）');
+    const referralHtml = `<div class="obs-block"><p class="obs-h">↩ 他部位・専門科へ橋渡し</p><p>単独確定せず、<b>${refTarget}</b>を参照してください。${s.disease.note ? '<br>' + s.disease.note : ''}</p></div>${dermHtml}`;
 
     const txHtml = isRed
       ? `<div class="alert red"><strong>要医療機関</strong><p>${TRACK_NOTE['要医療機関']}${s.disease.note ? '<br>' + s.disease.note : ''}</p></div>`

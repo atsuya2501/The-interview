@@ -1,0 +1,266 @@
+{
+  "region": "systemic",
+  "region_name": "全身性疾患",
+  "version": "1.0",
+  "architecture_note": "主訴フィルタ型マスタ。「全身が痛い」主訴から症状クラスタで9疾患へ振り分ける。一次branchは解剖部位でなく症状パターン。確定でなく示唆＋受診誘導。p.156の問診表が骨格。",
+  "master_type": "chief_complaint_filter",
+  "fallback": "上記に該当疾患がない場合はp.46『痛みの原因組織に関する鑑別』および各部位マスタを参照。",
+  "severity_policy": {
+    "redflag_count": 1,
+    "redflag_diseases": ["cerebral_infarction"],
+    "yellow_followup_diseases": ["sle", "adult_still", "temporal_arteritis", "rheumatoid_arthritis", "pmr", "ankylosing_spondylitis"],
+    "clinical_note": "全身症状疾患の多くは内分泌科・整形外科・リウマチ科を経由後に来院する＝既に診断済みのことが多い。本マスタは入口振り分け＋適切な科への受診誘導が主目的。"
+  },
+  "level_handling": {
+    "cerebral_infarction": "脳",
+    "default": "なし",
+    "systemic_flag_note": "脳梗塞以外はsystemic:trueで部位レベル判定をスキップ。全身性のため末梢/脊髄/脳の解剖学的レベルエンジンを通さない。"
+  },
+  "branches": [
+    {"id": "symptom_ra", "name": "朝こわばり・指変形・対称性関節症状", "target_disease": "rheumatoid_arthritis"},
+    {"id": "symptom_pmr", "name": "対称性の痛み・こわばり・手関節腫脹（高齢）", "target_disease": "pmr"},
+    {"id": "symptom_fibromyalgia", "name": "原因不明の広範囲痛・不定愁訴・全身圧痛", "target_disease": "fibromyalgia"},
+    {"id": "symptom_as", "name": "背臥位で緩和せず・運動で改善・朝こわばり（若年）", "target_disease": "ankylosing_spondylitis"},
+    {"id": "symptom_sle", "name": "関節炎・神経症状・認知症状・痙攣・皮疹", "target_disease": "sle"},
+    {"id": "symptom_still", "name": "関節炎・皮膚炎・咽頭痛・発熱", "target_disease": "adult_still"},
+    {"id": "symptom_hypothyroid", "name": "むくみ・疲れやすい・動作緩慢", "target_disease": "hypothyroidism"},
+    {"id": "symptom_stroke", "name": "片側広範囲しびれ・顔面麻痺", "target_disease": "cerebral_infarction"},
+    {"id": "symptom_temporal_art", "name": "頭痛中心・全身倦怠感（高齢）", "target_disease": "temporal_arteritis"}
+  ],
+  "diseases": [
+    {
+      "id": "cerebral_infarction",
+      "name": "脳梗塞 / 脳血管疾患",
+      "branch": ["symptom_stroke"],
+      "prevalence": "rare_redflag",
+      "treatment_track": "緊急医療",
+      "severity": "🔴",
+      "level": "脳",
+      "systemic": false,
+      "time_critical": "急性発症はtPA 4.5時間・血栓回収の時間制約。胸・足の血管系と同じ時間制約ロジックで即遮断・救急要請。",
+      "findings": {
+        "confirm": [
+          {"sign": "片側の広範囲なしびれ・顔面麻痺", "lr": null, "rank": 1},
+          {"sign": "バレー徴候陽性（閉眼挙上で患側が回内・下降）", "lr": null, "rank": 1},
+          {"sign": "手の回内・回外運動で左右の動きがバラバラ", "lr": null, "rank": 1},
+          {"sign": "急性発症の構音障害・言語障害", "lr": null, "rank": 1},
+          {"sign": "病的反射陽性", "lr": null, "rank": 2}
+        ],
+        "exclude": []
+      },
+      "note": "唯一の🔴。急性発症は鍼適応外、即救急（FAST評価）。陳旧性・後遺症期の機能回復は鍼適応。バレー徴候は錐体路、回内回外バラつきは錐体外路を示唆。"
+    },
+    {
+      "id": "rheumatoid_arthritis",
+      "name": "関節リウマチ",
+      "branch": ["symptom_ra"],
+      "prevalence": "common",
+      "treatment_track": "経過観察",
+      "severity": "🟡",
+      "level": "なし",
+      "systemic": true,
+      "referral": {"to": "リウマチ科・整形外科", "note": "多くは受診・診断済みで来院。未診断疑いなら受診誘導。"},
+      "shared_concept": ["ra_foot", "ra_hand", "ra_knee"],
+      "follow_up": {
+        "redflag_escalation": "多関節対称性腫脹＋朝こわばり1時間以上が新規・進行性なら受診誘導強化。"
+      },
+      "findings": {
+        "confirm": [
+          {"sign": "朝のこわばり、指の変形", "lr": null, "rank": 1},
+          {"sign": "対称性の痛み・こわばり・手関節の腫脹", "lr": null, "rank": 1},
+          {"sign": "両側上腕正中痛（多発性筋炎との重複所見）", "lr": null, "rank": 2},
+          {"sign": "指のPIP関節の変形・ボタンホール変形・スワンネック変形", "lr": null, "rank": 2}
+        ],
+        "exclude": []
+      },
+      "note": "全身マスタに全身発症パターン(多関節対称性)の所見を保持。各部位マスタのra_*とは概念共有・二重管理せず。患者は既に他科受診済みのことが多い前提。"
+    },
+    {
+      "id": "pmr",
+      "name": "リウマチ性多発筋炎(PMR)",
+      "branch": ["symptom_pmr"],
+      "prevalence": "occasional",
+      "treatment_track": "経過観察",
+      "severity": "🟡",
+      "level": "なし",
+      "systemic": true,
+      "referral": {"to": "リウマチ科・整形外科", "note": "50歳以上。側頭動脈炎の合併に注意。"},
+      "follow_up": {
+        "redflag_escalation": "側頭動脈炎(頭痛・視覚障害)の合併徴候があれば失明リスクのため即受診誘導。"
+      },
+      "findings": {
+        "confirm": [
+          {"sign": "50歳以上で肩から上肢・股関節から大腿部の対称性疼痛・こわばり", "lr": null, "rank": 1},
+          {"sign": "朝のこわばり", "lr": null, "rank": 1},
+          {"sign": "肩・股関節周囲の近位筋優位の症状", "lr": null, "rank": 2},
+          {"sign": "手関節・指の腫脹・こわばり（朝のこわばり）", "lr": null, "rank": 2}
+        ],
+        "exclude": []
+      },
+      "note": "50歳以上に好発。側頭動脈炎と密接に関連(両者合併しうる)。近位筋優位が特徴。"
+    },
+    {
+      "id": "fibromyalgia",
+      "name": "線維筋痛症",
+      "branch": ["symptom_fibromyalgia"],
+      "prevalence": "occasional",
+      "treatment_track": "全身調整・対症",
+      "severity": "🟡",
+      "level": "なし",
+      "systemic": true,
+      "findings": {
+        "confirm": [
+          {"sign": "原因不明の広範囲な痛み・不定愁訴・全身の圧痛", "lr": null, "rank": 1},
+          {"sign": "18カ所中11カ所以上に圧痛が認められる", "lr": null, "rank": 1},
+          {"sign": "全身の疼痛・倦怠感・こわばり", "lr": null, "rank": 2},
+          {"sign": "消化器症状・うつ傾向・睡眠障害の合併", "lr": null, "rank": 2}
+        ],
+        "exclude": [
+          {"sign": "検査所見に異常がある（線維筋痛症は検査所見に異常がないのが特徴）", "lr": null, "rank": 2}
+        ]
+      },
+      "note": "検査所見に異常がないのが特徴。18カ所中11カ所以上の圧痛点が古典的診断基準。除外診断的性格。鍼は全身調整・QOL改善目的で適応。"
+    },
+    {
+      "id": "ankylosing_spondylitis",
+      "name": "強直性脊椎炎",
+      "branch": ["symptom_as"],
+      "prevalence": "occasional",
+      "treatment_track": "経過観察",
+      "severity": "🟡",
+      "level": "なし",
+      "systemic": true,
+      "referral": {"to": "リウマチ科・整形外科", "note": "若年〜中年男性に多い。仙腸関節炎が先行。"},
+      "findings": {
+        "confirm": [
+          {"sign": "朝のこわばりが30分以上続く", "lr": 2.7, "rank": 3},
+          {"sign": "運動で改善、安静で改善なし", "lr": 2.6, "rank": 3},
+          {"sign": "脊椎前屈試験(Schober試験)5cm以下", "lr": 2.6, "rank": 3},
+          {"sign": "睡眠後半期のみ痛みで覚醒（夜間痛・起床時軽快）", "lr": 2.0, "rank": 3}
+        ],
+        "exclude": [
+          {"sign": "脊椎前屈試験(Schober試験)5cm以下でない（5cm超）", "lr": 0.1, "rank": 1},
+          {"sign": "背臥位で痛みが緩和する", "lr": 0.41, "rank": 3},
+          {"sign": "朝のこわばりが30分以上続かない", "lr": 0.5, "rank": 3}
+        ]
+      },
+      "note": "若年〜中年男性。仙腸関節炎・反応性関節炎・乾癬性関節炎・炎症性腸疾患関連と間違えやすい。Schober試験5cm以下が除外確定的(LR0.1=陰性で強く除外)。運動で改善・安静で悪化＝炎症性腰背部痛パターン。"
+    },
+    {
+      "id": "sle",
+      "name": "全身性エリテマトーデス(SLE)",
+      "branch": ["symptom_sle"],
+      "prevalence": "occasional",
+      "treatment_track": "経過観察",
+      "severity": "🟡",
+      "level": "なし",
+      "systemic": true,
+      "referral": {"to": "リウマチ科・膠原病内科", "note": "臓器障害進行リスク。確定は専門科。"},
+      "follow_up": {
+        "redflag_escalation": "痙攣・局所神経症状・認知症状(中枢神経ループス)が新規出現なら即受診誘導。腎・血液系障害も進行性。"
+      },
+      "findings": {
+        "confirm": [
+          {"sign": "痙攣", "lr": 26, "rank": 1},
+          {"sign": "蝶形紅斑", "lr": 26, "rank": 1},
+          {"sign": "円板状皮疹", "lr": 19, "rank": 1},
+          {"sign": "光線過敏", "lr": 15, "rank": 1},
+          {"sign": "口腔内潰瘍", "lr": 4.2, "rank": 3},
+          {"sign": "局所神経症状", "lr": 3.9, "rank": 3},
+          {"sign": "認知症（認知症状）", "lr": 3.8, "rank": 3},
+          {"sign": "関節炎", "lr": 2.1, "rank": 3}
+        ],
+        "exclude": [
+          {"sign": "蝶形紅斑なし", "lr": 0.2, "rank": 2}
+        ]
+      },
+      "note": "蝶形紅斑・円板状皮疹・光線過敏・痙攣が高LR(15-26)で確定的。中枢神経ループス(痙攣・神経症状・認知症状)は重症サイン。経過観察トラック＝鍼で確定せず専門科誘導。"
+    },
+    {
+      "id": "adult_still",
+      "name": "成人スティル病",
+      "branch": ["symptom_still"],
+      "prevalence": "rare_redflag",
+      "treatment_track": "経過観察",
+      "severity": "🟡",
+      "level": "なし",
+      "systemic": true,
+      "referral": {"to": "リウマチ科・膠原病内科", "note": "発熱・皮疹・関節炎の三徴。確定は専門科。"},
+      "follow_up": {
+        "redflag_escalation": "39℃以上の弛張熱が1週間以上持続＋典型的皮疹(サーモンピンク疹)なら即受診誘導。"
+      },
+      "findings": {
+        "confirm": [
+          {"sign": "典型的皮膚炎（サーモンピンク疹）", "lr": 75, "rank": 1},
+          {"sign": "咽頭痛", "lr": 4.2, "rank": 3},
+          {"sign": "39℃以上の熱が1週間以上", "lr": 3.2, "rank": 3},
+          {"sign": "リンパ節腫脹", "lr": 2.2, "rank": 3}
+        ],
+        "exclude": [
+          {"sign": "典型的皮膚炎なし", "lr": 0.1, "rank": 1},
+          {"sign": "関節炎が2週間以上続かない", "lr": 0.2, "rank": 2},
+          {"sign": "39℃以上の熱が1週間以上ない", "lr": 0.3, "rank": 3},
+          {"sign": "リンパ節腫脹なし", "lr": 0.3, "rank": 3},
+          {"sign": "咽頭痛なし", "lr": 0.4, "rank": 3},
+          {"sign": "関節炎なし", "lr": 0.5, "rank": 3}
+        ]
+      },
+      "note": "典型的皮膚炎(サーモンピンク疹)がLR75で極めて確定的。弛張熱・咽頭痛・関節炎・リンパ節腫脹の組合せ。発熱が主訴になりうる＝痛み主訴で来ないこともある。"
+    },
+    {
+      "id": "hypothyroidism",
+      "name": "甲状腺機能低下症",
+      "branch": ["symptom_hypothyroid"],
+      "prevalence": "occasional",
+      "treatment_track": "経過観察",
+      "severity": "🟡",
+      "level": "なし",
+      "systemic": true,
+      "referral": {"to": "内分泌科", "note": "多くは受診・診断済みで来院。未診断疑いなら受診誘導。"},
+      "self_contained": true,
+      "findings": {
+        "confirm": [
+          {"sign": "動作緩慢", "lr": 27.7, "rank": 1},
+          {"sign": "むくみ（浮腫）", "lr": 16.2, "rank": 1},
+          {"sign": "難聴", "lr": 8.8, "rank": 2},
+          {"sign": "アキレス腱反射の遅延", "lr": 3.4, "rank": 3},
+          {"sign": "ざらざらした皮膚", "lr": 3.4, "rank": 3},
+          {"sign": "乾燥肌", "lr": 2.1, "rank": 3},
+          {"sign": "寒がり", "lr": 2.1, "rank": 3}
+        ],
+        "exclude": [
+          {"sign": "下腿浮腫なし", "lr": 0.4, "rank": 3},
+          {"sign": "乾燥肌なし", "lr": 0.4, "rank": 3},
+          {"sign": "寒がりなし", "lr": 0.4, "rank": 3},
+          {"sign": "むくみなし", "lr": 0.4, "rank": 3}
+        ]
+      },
+      "note": "全身マスタ内で完結(self_contained)。動作緩慢LR27.7・むくみLR16.2が確定的。アキレス腱反射遅延(回復相遅延)は古典的身体所見。疲労・全身痛を主訴に来院しうる。"
+    },
+    {
+      "id": "temporal_arteritis",
+      "name": "側頭動脈炎(巨細胞性動脈炎)",
+      "branch": ["symptom_temporal_art"],
+      "prevalence": "rare_redflag",
+      "treatment_track": "頭部参照",
+      "severity": "🟡",
+      "level": "なし",
+      "systemic": true,
+      "referral_to_head": true,
+      "referral": {"to": "頭痛マスタ参照／膠原病内科・眼科", "note": "失明リスクのため緊急性高い。頭痛マスタで単独確定しない蝶番。"},
+      "follow_up": {
+        "redflag_escalation": "視覚障害・複視・顎跛行が出現なら失明切迫＝即受診誘導(ステロイド緊急投与適応)。"
+      },
+      "findings": {
+        "confirm": [
+          {"sign": "頭痛が中心・全身倦怠感（50歳以上）", "lr": null, "rank": 1},
+          {"sign": "側頭部の圧痛・側頭動脈の怒張・拍動減弱", "lr": null, "rank": 1},
+          {"sign": "顎跛行（咀嚼時の顎の疲労・疼痛）", "lr": null, "rank": 1},
+          {"sign": "PMRの合併", "lr": null, "rank": 2}
+        ],
+        "exclude": []
+      },
+      "note": "referral_to_headで頭痛マスタへ橋渡し、全身マスタ内で単独確定しない(足の腰参照と同型の蝶番)。視覚障害は失明前兆＝最重症。PMRと高頻度合併。50歳以上。"
+    }
+  ]
+}
