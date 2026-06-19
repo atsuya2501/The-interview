@@ -1,0 +1,548 @@
+{
+  "region": "foot",
+  "region_name": "足部",
+  "version": "1.0",
+  "architecture_note": "処理順: redflag_gate → level_engine → disease_master(this) → treatment_master。本ファイルは疾患マスタ。branchは解剖学的部位、findingsはRank集計、LRは補助。",
+  "severity_policy": {
+    "redflag_count": 2,
+    "redflag_diseases": ["aso_ali", "dvt"],
+    "yellow_diseases": ["diabetic_foot"],
+    "no_visceral_gate": true,
+    "note": "足は来院前フィルタ前提・内臓系なし。緊急遮断は血管系のみ。"
+  },
+  "overrides": {
+    "vascular_redflag_override": {
+      "trigger_any": [
+        "足背動脈と後脛骨動脈の拍動欠如",
+        "ABI 0.9以下",
+        "ふくらはぎ非対称性腫脹 2cm差以上",
+        "足の色の異常（蒼白・赤色・青色）＋冷感"
+      ],
+      "action": "force_redflag",
+      "note": "部位branchに関係なく強制🔴格上げ。腹部peritoneal_sign_overrideと同型。即医療機関。"
+    }
+  },
+  "branches": [
+    {"id": "ankle_medial", "name": "足関節内側部", "dermatome_ref": ["L4"]},
+    {"id": "ankle_lateral", "name": "足関節外側部", "dermatome_ref": ["L5", "S1"]},
+    {"id": "ankle_posterior", "name": "足関節後部"},
+    {"id": "forefoot", "name": "前足部", "dermatome_ref": ["L5", "S1"]},
+    {"id": "midfoot", "name": "中足部"},
+    {"id": "heel", "name": "踵", "dermatome_ref": ["S1"]},
+    {"id": "sole", "name": "足底", "dermatome_ref": ["S1"], "referral_to_lumbar": true}
+  ],
+  "diseases": [
+    {
+      "id": "aso_ali",
+      "name": "閉塞性動脈硬化症 / 急性下肢虚血(ASO/ALI)",
+      "branch": ["sole", "forefoot", "ankle_lateral", "ankle_medial"],
+      "prevalence": "rare_redflag",
+      "treatment_track": "緊急医療",
+      "severity": "🔴",
+      "time_critical": "急性下肢虚血は6時間以内の血行再建が目安。下腿コンパートメントと同じ時間制約ロジック。",
+      "findings": {
+        "confirm": [
+          {"sign": "足背動脈と後脛骨動脈の拍動欠如", "lr": null, "rank": 1},
+          {"sign": "ABI 0.9以下", "lr": 34.8, "rank": 1},
+          {"sign": "足の色の異常（蒼白・赤色・青色）", "lr": 2.8, "rank": 2},
+          {"sign": "下肢のSpO2低値（指より2%低い）", "lr": 30, "rank": 1},
+          {"sign": "色調変化・冷え・動脈拍動の欠如", "lr": null, "rank": 1},
+          {"sign": "間欠性跛行", "lr": null, "rank": 2},
+          {"sign": "下肢血管雑音の存在", "lr": 14.9, "rank": 2},
+          {"sign": "足の非対称な冷感", "lr": 6.1, "rank": 3},
+          {"sign": "足の創傷や疼痛", "lr": 7.0, "rank": 3},
+          {"sign": "大腿動脈の拍動欠如", "lr": 6.1, "rank": 3}
+        ],
+        "exclude": [
+          {"sign": "足背動脈と後脛骨動脈の拍動が触れる", "lr": 0.3, "rank": 1}
+        ]
+      },
+      "note": "vascular_redflag_override対象。鍼適応外、即医療機関紹介。糖尿病性足病変と所見が重なるが、急性発症・拍動欠如・色調変化が揃えばこちらを優先。"
+    },
+    {
+      "id": "dvt",
+      "name": "深部静脈血栓症(DVT)",
+      "branch": ["ankle_posterior", "sole"],
+      "prevalence": "rare_redflag",
+      "treatment_track": "緊急医療",
+      "time_critical": "肺塞栓直結。胸部逆ピラミッドと同思想で遮断。",
+      "severity": "🔴",
+      "findings": {
+        "confirm": [
+          {"sign": "ふくらはぎ非対称性腫脹 2cm差以上", "lr": 2.1, "rank": 1},
+          {"sign": "下肢のSpO2低値（指より2%低い）", "lr": 30, "rank": 1},
+          {"sign": "ふくらはぎの非対称な疼痛", "lr": null, "rank": 2},
+          {"sign": "片側性の発赤・熱感", "lr": null, "rank": 2}
+        ],
+        "exclude": [
+          {"sign": "ふくらはぎの非対称性腫脹が2cm差以下", "lr": 0.5, "rank": 1}
+        ]
+      },
+      "note": "vascular_redflag_override対象。長期臥床・術後・長時間同一姿勢の既往を問診で確認。"
+    },
+    {
+      "id": "diabetic_foot",
+      "name": "糖尿病性足病変",
+      "branch": ["sole", "forefoot"],
+      "prevalence": "rare_redflag",
+      "treatment_track": "経過観察",
+      "severity": "🟡",
+      "follow_up": {
+        "follow_up_threshold": {"visits": 3, "weeks": 2},
+        "redflag_escalation": "創傷・潰瘍・壊疽の出現、感染徴候(発赤・腫脹・浸出液)が揃えば🔴格上げ・即医療機関。"
+      },
+      "findings": {
+        "confirm": [
+          {"sign": "5.07モノフィラメントによる感覚障害（複数部位）", "lr": 4.7, "rank": 1},
+          {"sign": "5.07モノフィラメントによる感覚障害（1部位）", "lr": null, "rank": 2},
+          {"sign": "振動覚低下", "lr": 2.0, "rank": 2},
+          {"sign": "糖尿病の既往", "lr": null, "rank": 1},
+          {"sign": "足の色調変化・冷え", "lr": null, "rank": 2}
+        ],
+        "exclude": [
+          {"sign": "5.07モノフィラメント感覚正常", "lr": 0.3, "rank": 1}
+        ]
+      },
+      "note": "緊急ではないが見逃すと壊疽進行。神経障害性のため無痛のことがある＝痛みを主訴に来ない点に注意。胃がん等と同じ経過観察トラック思想。"
+    },
+    {
+      "id": "lumbar_referred_foot",
+      "name": "下位腰椎障害による足部関連痛",
+      "branch": ["sole", "forefoot", "ankle_lateral"],
+      "prevalence": "common",
+      "treatment_track": "腰部参照",
+      "severity": "🟡",
+      "referral_to_lumbar": true,
+      "dermatome_ref": ["L4", "L5", "S1"],
+      "findings": {
+        "confirm": [
+          {"sign": "前脛骨筋(L4)・EHL(L5)・FHL(S1)の筋力低下", "lr": null, "rank": 1, "dermatome": {"前脛骨筋": "L4", "EHL": "L5", "FHL": "S1"}},
+          {"sign": "対側SLRで対側に痛みやしびれが再現", "lr": null, "rank": 1},
+          {"sign": "デルマトーム分布の感覚障害", "lr": null, "rank": 2}
+        ],
+        "exclude": []
+      },
+      "note": "単独確定しない。腰マスタへ橋渡し。dermatome_refで高位推定(L4/L5/S1)。「臀部痛は腰の治療で改善するパターンが多すぎる」と同じ思想を足部にも適用。足背筋筋力低下=L5、足底感覚=S1。"
+    },
+    {
+      "id": "tarsal_tunnel",
+      "name": "足根管症候群",
+      "branch": ["ankle_medial", "sole"],
+      "prevalence": "occasional",
+      "treatment_track": "末梢神経絞扼",
+      "severity": "🟡",
+      "nerve": "脛骨神経",
+      "findings": {
+        "confirm": [
+          {"sign": "足底のしびれ・異物感（靴に砂利が入ったような感覚）", "lr": null, "rank": 1},
+          {"sign": "内果後方のTinel徴候陽性", "lr": null, "rank": 1},
+          {"sign": "足底から内果にかけての痛み", "lr": null, "rank": 2},
+          {"sign": "夜間・荷重時の症状増悪", "lr": null, "rank": 2}
+        ],
+        "exclude": [
+          {"sign": "足背側のしびれ（脛骨神経支配外）", "lr": null, "rank": 2}
+        ]
+      },
+      "note": "脛骨神経絞扼。下肢末梢神経マップは新設せず足部内に閉じる。S1デルマトーム障害(腰由来)との鑑別が要点＝内果後方Tinelと腰所見で振り分け。"
+    },
+    {
+      "id": "plantar_fasciitis",
+      "name": "足底腱膜炎",
+      "branch": ["sole", "heel"],
+      "prevalence": "common",
+      "treatment_track": "足底腱膜・筋膜",
+      "severity": "無印",
+      "findings": {
+        "confirm": [
+          {"sign": "踵骨内側結節の圧痛", "lr": null, "rank": 1},
+          {"sign": "起床後第一歩・長時間安静後の足底痛", "lr": null, "rank": 1},
+          {"sign": "足底腱膜の伸張(Windlassテスト)で疼痛再現", "lr": null, "rank": 1},
+          {"sign": "荷重時・歩行時の足底痛", "lr": null, "rank": 2}
+        ],
+        "exclude": [
+          {"sign": "安静時持続痛・夜間痛主体", "lr": null, "rank": 2}
+        ]
+      },
+      "note": "鍼灸院最多クラス。踵骨疲労骨折との鑑別＝圧痛部位(腱膜起始部 vs 踵骨体部)と荷重痛パターン。"
+    },
+    {
+      "id": "calcaneal_stress_fx",
+      "name": "踵骨疲労骨折",
+      "branch": ["heel", "sole"],
+      "prevalence": "occasional",
+      "treatment_track": "骨折",
+      "severity": "🟡",
+      "findings": {
+        "confirm": [
+          {"sign": "踵骨側方圧迫テスト(squeeze)で疼痛", "lr": null, "rank": 1},
+          {"sign": "荷重時痛の増悪・安静で軽減", "lr": null, "rank": 1},
+          {"sign": "ランニング等の反復負荷の既往", "lr": null, "rank": 2}
+        ],
+        "exclude": []
+      },
+      "note": "足底腱膜炎と紛らわしい。骨折trackへ。"
+    },
+    {
+      "id": "achilles_tendinopathy",
+      "name": "アキレス腱炎・アキレス腱周囲炎",
+      "branch": ["ankle_posterior", "heel"],
+      "prevalence": "common",
+      "treatment_track": "腱・腱付着部",
+      "severity": "無印",
+      "findings": {
+        "confirm": [
+          {"sign": "アキレス腱部の圧痛・腫脹", "lr": null, "rank": 1},
+          {"sign": "動作開始時痛、動くと痛みが楽になる", "lr": null, "rank": 1},
+          {"sign": "底屈抵抗時痛", "lr": null, "rank": 2}
+        ],
+        "exclude": [
+          {"sign": "Thompsonテスト陽性(底屈消失)", "lr": null, "rank": 1, "redflag_to": "achilles_rupture"}
+        ]
+      },
+      "note": "Thompsonテスト陽性は腱断裂を示唆＝exclude所見が別疾患へのブリッジ。"
+    },
+    {
+      "id": "achilles_rupture",
+      "name": "アキレス腱断裂",
+      "branch": ["ankle_posterior", "heel"],
+      "prevalence": "occasional",
+      "treatment_track": "腱断裂",
+      "severity": "🟡",
+      "findings": {
+        "confirm": [
+          {"sign": "Thompsonテスト陽性(腓腹筋把持で底屈消失)", "lr": null, "rank": 1},
+          {"sign": "受傷時の断裂音・蹴られた感覚", "lr": null, "rank": 1},
+          {"sign": "アキレス腱の陥凹触知", "lr": null, "rank": 1},
+          {"sign": "つま先立ち不能", "lr": null, "rank": 1}
+        ],
+        "exclude": []
+      },
+      "note": "急性は整形外科紹介。鍼適応は保存・術後リハ期。"
+    },
+    {
+      "id": "ankle_sprain_atfl",
+      "name": "前距腓靭帯捻挫(足関節外側捻挫)",
+      "branch": ["ankle_lateral"],
+      "prevalence": "common",
+      "treatment_track": "靭帯捻挫",
+      "severity": "🟡",
+      "findings": {
+        "confirm": [
+          {"sign": "足首を内側にひねる受傷機転", "lr": null, "rank": 1},
+          {"sign": "外果前下方(前距腓靭帯部)の圧痛", "lr": null, "rank": 1},
+          {"sign": "前方引き出しテスト陽性", "lr": null, "rank": 1},
+          {"sign": "外果周囲の腫脹・内出血", "lr": null, "rank": 2}
+        ],
+        "exclude": []
+      },
+      "composite_rule": {"ref": "ottawa_ankle_foot", "note": "骨折除外を先に。Ottawa陽性なら骨折trackへ。"},
+      "note": "最多受傷。Ottawa Ankle Rulesで骨折を除外してから靭帯治療へ。"
+    },
+    {
+      "id": "deltoid_sprain",
+      "name": "三角靭帯捻挫(足関節内側捻挫)",
+      "branch": ["ankle_medial"],
+      "prevalence": "occasional",
+      "treatment_track": "靭帯捻挫",
+      "severity": "🟡",
+      "findings": {
+        "confirm": [
+          {"sign": "足首を外側にひねる受傷機転", "lr": null, "rank": 1},
+          {"sign": "内果周囲の圧痛・腫脹・内出血", "lr": null, "rank": 1}
+        ],
+        "exclude": []
+      },
+      "composite_rule": {"ref": "ottawa_ankle_foot"},
+      "note": "外側捻挫より少ない。高エネルギー時は骨折・脱臼合併に注意。"
+    },
+    {
+      "id": "ankle_midfoot_fracture",
+      "name": "足首・中足部の骨折",
+      "branch": ["ankle_lateral", "ankle_medial", "midfoot", "forefoot"],
+      "prevalence": "occasional",
+      "treatment_track": "骨折",
+      "severity": "🟡",
+      "composite_rule": {
+        "id": "ottawa_ankle_foot",
+        "name": "Ottawa Ankle/Foot Rules相当",
+        "rule": "下記5項目中1つ以上陽性で骨折の可能性→画像評価へ",
+        "items": [
+          "外果後面の圧痛",
+          "内果後面の圧痛",
+          "第5中足骨基部の圧痛",
+          "舟状骨の圧痛",
+          "受傷直後・受傷直後における体重負荷不能(4歩歩けない)"
+        ]
+      },
+      "findings": {
+        "confirm": [
+          {"sign": "外果後面の圧痛", "lr": 2.9, "rank": 1},
+          {"sign": "内果後面の圧痛", "lr": 2.6, "rank": 1},
+          {"sign": "第5中足骨基部の圧痛", "lr": null, "rank": 1},
+          {"sign": "舟状骨の圧痛", "lr": null, "rank": 1},
+          {"sign": "外果後面の圧痛(Rank3複合)", "lr": 4.8, "rank": 3},
+          {"sign": "受傷直後の体重負荷不能", "lr": null, "rank": 1}
+        ],
+        "exclude": []
+      },
+      "note": "composite_rule(N項目中M個)。膝の骨折ルールと同型。Ottawa陰性なら骨折ほぼ除外＝捻挫・靭帯treatへ。"
+    },
+    {
+      "id": "jones_5th_mt_fracture",
+      "name": "第5中足骨疲労骨折・Jones骨折",
+      "branch": ["midfoot", "ankle_lateral"],
+      "prevalence": "occasional",
+      "treatment_track": "骨折",
+      "severity": "🟡",
+      "findings": {
+        "confirm": [
+          {"sign": "第5中足骨基部の限局性圧痛", "lr": null, "rank": 1},
+          {"sign": "足部外側荷重時痛", "lr": null, "rank": 2},
+          {"sign": "反復負荷・内反捻挫の既往", "lr": null, "rank": 2}
+        ],
+        "exclude": []
+      },
+      "note": "外側捻挫と誤りやすい。Jones骨折は癒合不良の難治部位＝整形紹介。"
+    },
+    {
+      "id": "metatarsal_stress_fx",
+      "name": "中足骨疲労骨折",
+      "branch": ["forefoot", "midfoot"],
+      "prevalence": "occasional",
+      "treatment_track": "骨折",
+      "severity": "🟡",
+      "findings": {
+        "confirm": [
+          {"sign": "中足骨幹部の限局性圧痛", "lr": null, "rank": 1},
+          {"sign": "荷重時痛増悪・安静軽減", "lr": null, "rank": 1},
+          {"sign": "反復ランニング・歩行量増加の既往", "lr": null, "rank": 2},
+          {"sign": "前足部の腫脹", "lr": null, "rank": 2}
+        ],
+        "exclude": []
+      },
+      "note": "第2・3中足骨に多い(行軍骨折)。モートン病と部位が近く鑑別=圧痛点が骨幹 vs 趾間。"
+    },
+    {
+      "id": "mortons_neuroma",
+      "name": "モートン神経腫",
+      "branch": ["forefoot"],
+      "prevalence": "common",
+      "treatment_track": "末梢神経絞扼",
+      "severity": "無印",
+      "findings": {
+        "confirm": [
+          {"sign": "第3〜4趾間(MTP)のしびれ・灼熱痛・刺痛", "lr": null, "rank": 1},
+          {"sign": "中足骨頭部の横方向圧迫(Mulder click)で症状再現", "lr": null, "rank": 1},
+          {"sign": "趾間の感覚障害", "lr": null, "rank": 2},
+          {"sign": "幅の狭い靴・ハイヒールで増悪", "lr": null, "rank": 2}
+        ],
+        "exclude": []
+      },
+      "note": "第3-4趾間が好発。中足骨疲労骨折との鑑別=圧痛が趾間(神経腫) vs 骨幹(骨折)。"
+    },
+    {
+      "id": "hallux_valgus",
+      "name": "外反母趾",
+      "branch": ["forefoot"],
+      "prevalence": "common",
+      "treatment_track": "変形・アライメント",
+      "severity": "無印",
+      "findings": {
+        "confirm": [
+          {"sign": "第1MTP関節の外反変形", "lr": null, "rank": 1},
+          {"sign": "母趾MTP内側の隆起・発赤・圧痛(bunion)", "lr": null, "rank": 1},
+          {"sign": "荷重・歩行時の前足部痛", "lr": null, "rank": 2}
+        ],
+        "exclude": []
+      },
+      "note": "視診で明瞭。痛風(第1MTP)と部位が同じだが、痛風は発作性・突然・発赤で鑑別。"
+    },
+    {
+      "id": "hallux_rigidus",
+      "name": "強直母趾",
+      "branch": ["forefoot"],
+      "prevalence": "occasional",
+      "treatment_track": "変形性関節症",
+      "severity": "無印",
+      "findings": {
+        "confirm": [
+          {"sign": "第1MTP関節の背屈制限", "lr": null, "rank": 1},
+          {"sign": "蹴り出し(toe off)時の第1MTP痛", "lr": null, "rank": 1},
+          {"sign": "第1MTP背側の骨棘・隆起", "lr": null, "rank": 2}
+        ],
+        "exclude": []
+      },
+      "note": "第1MTPの変形性関節症。背屈制限が決定的所見。"
+    },
+    {
+      "id": "sesamoiditis",
+      "name": "種子骨炎",
+      "branch": ["forefoot", "sole"],
+      "prevalence": "occasional",
+      "treatment_track": "骨・付着部",
+      "severity": "無印",
+      "findings": {
+        "confirm": [
+          {"sign": "第1中足骨頭直下(種子骨部)の限局圧痛", "lr": null, "rank": 1},
+          {"sign": "母趾背屈・蹴り出し時の前足部底側痛", "lr": null, "rank": 1},
+          {"sign": "前足部荷重で増悪", "lr": null, "rank": 2}
+        ],
+        "exclude": []
+      },
+      "note": "種子骨疲労骨折との連続性あり。荷重痛が強ければ骨折評価。"
+    },
+    {
+      "id": "midfoot_oa",
+      "name": "変形性関節症(中足部・足関節)",
+      "branch": ["midfoot", "ankle_lateral", "ankle_medial"],
+      "prevalence": "common",
+      "treatment_track": "変形性関節症",
+      "severity": "無印",
+      "findings": {
+        "confirm": [
+          {"sign": "関節裂隙の圧痛・運動時痛", "lr": null, "rank": 1},
+          {"sign": "動作開始時痛、可動域制限", "lr": null, "rank": 1},
+          {"sign": "中高年・既往の関節負荷", "lr": null, "rank": 2},
+          {"sign": "骨棘・関節腫脹", "lr": null, "rank": 2}
+        ],
+        "exclude": []
+      },
+      "note": "リスフラン関節等。リウマチ(多関節・朝のこわばり1時間以上)との鑑別。"
+    },
+    {
+      "id": "ra_foot",
+      "name": "関節リウマチ(足部)",
+      "branch": ["forefoot", "midfoot", "ankle_medial"],
+      "prevalence": "occasional",
+      "treatment_track": "経過観察",
+      "severity": "🟡",
+      "follow_up": {
+        "redflag_escalation": "多関節(手指・手関節含む)対称性腫脹＋朝のこわばり1時間以上が揃えば内科(リウマチ科)紹介。"
+      },
+      "findings": {
+        "confirm": [
+          {"sign": "朝のこわばりが1時間以上続く", "lr": null, "rank": 1},
+          {"sign": "MTP関節の多発性・対称性の腫脹・疼痛", "lr": null, "rank": 1},
+          {"sign": "手指・手関節など他関節の同時罹患", "lr": null, "rank": 1},
+          {"sign": "近位指節間関節等3カ所以上の関節腫脹が2週間以上持続", "lr": null, "rank": 2}
+        ],
+        "exclude": [
+          {"sign": "単関節・非対称・朝のこわばり30分未満", "lr": null, "rank": 2}
+        ]
+      },
+      "note": "足部MTPは初発部位になりうる。経過観察トラック＝身体所見で確定困難だが見逃すと進行。"
+    },
+    {
+      "id": "gout",
+      "name": "痛風",
+      "branch": ["forefoot"],
+      "prevalence": "occasional",
+      "treatment_track": "痛風",
+      "severity": "🟡",
+      "composite_rule": {
+        "id": "gout_composite",
+        "name": "痛風複合所見",
+        "rule": "LR高所見が揃えば痛風trackへ素直に流す(複雑化しない)",
+        "note": "所見が揃えば一発で分かる＋治療は内科主導。蜂窩織炎を複雑化しないのと同思想。"
+      },
+      "findings": {
+        "confirm": [
+          {"sign": "痛風結節", "lr": 40, "rank": 1},
+          {"sign": "第1中足趾節関節の発作", "lr": 31, "rank": 1},
+          {"sign": "突然の関節痛、腫脹で2週間以内に改善", "lr": null, "rank": 1},
+          {"sign": "発赤", "lr": 2.4, "rank": 2},
+          {"sign": "高尿酸血症の既往", "lr": null, "rank": 2}
+        ],
+        "exclude": [
+          {"sign": "痛風結節なし", "lr": 0.13, "rank": 1},
+          {"sign": "第1中足趾節関節発作なし", "lr": 0.09, "rank": 2},
+          {"sign": "発赤なし", "lr": 0.04, "rank": 2}
+        ]
+      },
+      "note": "第1MTPに好発。偽痛風(ピロリン酸Ca、膝・手関節等の大関節)と鑑別。発作期は内科主導、間欠期に鍼で全身調整可。"
+    },
+    {
+      "id": "pseudogout_foot",
+      "name": "偽痛風(足部)",
+      "branch": ["ankle_lateral", "ankle_medial", "midfoot"],
+      "prevalence": "rare_redflag",
+      "treatment_track": "痛風",
+      "severity": "🟡",
+      "findings": {
+        "confirm": [
+          {"sign": "突然の関節痛・腫脹(大関節寄り)", "lr": null, "rank": 1},
+          {"sign": "80歳以上・高齢", "lr": null, "rank": 2},
+          {"sign": "ピロリン酸カルシウム関連の既往", "lr": null, "rank": 2}
+        ],
+        "exclude": []
+      },
+      "note": "痛風が第1MTPなのに対し偽痛風は大関節寄り。鑑別困難なら痛風trackで内科紹介。"
+    },
+    {
+      "id": "pes_planus_cavus",
+      "name": "扁平足・凹足(アライメント異常)",
+      "branch": ["sole", "midfoot"],
+      "prevalence": "common",
+      "treatment_track": "変形・アライメント",
+      "severity": "無印",
+      "findings": {
+        "confirm": [
+          {"sign": "内側縦アーチの低下(扁平足)または過度の挙上(凹足)", "lr": null, "rank": 1},
+          {"sign": "長時間歩行・立位での足底/土踏まず痛", "lr": null, "rank": 2},
+          {"sign": "後脛骨筋腱機能不全の合併(扁平足)", "lr": null, "rank": 2}
+        ],
+        "exclude": []
+      },
+      "note": "アライメント異常は二次的に足底腱膜炎・後脛骨筋腱炎を誘発。背景因子として評価。"
+    },
+    {
+      "id": "tib_post_tendinitis",
+      "name": "後脛骨筋腱炎",
+      "branch": ["ankle_medial", "midfoot"],
+      "prevalence": "occasional",
+      "treatment_track": "腱・腱付着部",
+      "severity": "無印",
+      "findings": {
+        "confirm": [
+          {"sign": "内果後下方〜舟状骨にかけての圧痛・腫脹", "lr": null, "rank": 1},
+          {"sign": "片脚つま先立ち困難・踵が内反しない", "lr": null, "rank": 1},
+          {"sign": "扁平足の進行・合併", "lr": null, "rank": 2}
+        ],
+        "exclude": []
+      },
+      "note": "進行性扁平足の原因。足根管症候群(同じ内果後方)と鑑別=しびれ(神経) vs 腱の圧痛・機能不全。"
+    },
+    {
+      "id": "clavus_callus",
+      "name": "鶏眼・胼胝",
+      "branch": ["sole", "forefoot"],
+      "prevalence": "common",
+      "treatment_track": "対症・足底ケア",
+      "severity": "無印",
+      "findings": {
+        "confirm": [
+          {"sign": "足底外周に近い部分(第4〜5趾間)の限局性角質増殖", "lr": null, "rank": 1},
+          {"sign": "中央に半透明の淡黄色の芯・圧力に伴う激痛(鶏眼)", "lr": null, "rank": 1}
+        ],
+        "exclude": []
+      },
+      "note": "視診で明瞭。複雑化しない。アライメント異常・靴の評価を併せる。"
+    },
+    {
+      "id": "plantar_fibroma",
+      "name": "足底線維腫",
+      "branch": ["sole"],
+      "prevalence": "rare_redflag",
+      "treatment_track": "経過観察",
+      "severity": "🟡",
+      "findings": {
+        "confirm": [
+          {"sign": "足底腱膜内の硬い結節触知", "lr": null, "rank": 1},
+          {"sign": "荷重時の足底違和感・痛み", "lr": null, "rank": 2}
+        ],
+        "exclude": []
+      },
+      "note": "良性だが腫瘤性病変は経過観察＝増大・多発・他部位腫瘤があれば医療機関。"
+    }
+  ]
+}

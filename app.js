@@ -15,7 +15,7 @@ let DISEASES = [];     // 選択中部位の疾患マスタ
 let BRANCHES = {};     // 選択中部位の branch 説明
 let TREATMENTS = [];   // 治療マスタ（部位共通）
 let TEST_METHODS = {}; // 検査名 → 実施方法（部位共通）
-let PERITONEAL = null; // 腹膜刺激徴候オーバーライド（腹部のみ）
+let OVERRIDES = [];    // 部位レベルの強制🔴オーバーライド [{signs,note,title}]（腹膜刺激/血管など）
 let DERMATOME = null;  // 神経根デルマトームマップ（共有リソース）
 let PERIPHERAL = null; // 末梢神経支配領域マップ（共有リソース）
 
@@ -32,7 +32,8 @@ const REGIONS = {
   abdomen: { label: '腹', desc: '腹部・消化器',      file: 'data/abdomen_diseases.json', wrapped: false },
   thigh:  { label: '大腿', desc: '太もも・股関節',   file: 'data/thigh_diseases.json',  wrapped: false },
   knee:   { label: '膝', desc: '膝関節・膝周囲',     file: 'data/knee_diseases.json',   wrapped: false },
-  lower_leg: { label: '下腿', desc: 'ふくらはぎ・すね', file: 'data/lower_leg_diseases.json', wrapped: false }
+  lower_leg: { label: '下腿', desc: 'ふくらはぎ・すね', file: 'data/lower_leg_diseases.json', wrapped: false },
+  foot:   { label: '足部', desc: '足・足関節・足趾', file: 'data/foot_diseases.json',    wrapped: false }
 };
 
 // ---- 設定（エンジンのチューニング箇所はここに集約） ----
@@ -165,14 +166,63 @@ async function init() {
   }
 }
 
-// 選択部位の疾患マスタを読み込む
+// severity 表記を正規化（絵文字・別表記 → 緊急/要注意/undefined）
+function normSeverity(sev) {
+  if (sev === '緊急' || sev === '🔴') return '緊急';
+  if (sev === '要注意' || sev === '🟡') return '要注意';
+  return undefined; // '無印' / undefined
+}
+
+// treatment_track を内部正準トラックに正規化（部位ごとの記述的トラックを吸収）
+function canonTrack(d) {
+  const t = d.treatment_track;
+  if (t === '経過観察') return '経過観察';
+  if (t === '腰部参照' || t === '腰橋渡し' || d.referral_to_lumbar) return '腰橋渡し';
+  const sev = normSeverity(d.severity);
+  if (sev === '緊急' || sev === '要注意') return '要医療機関';
+  if (t === '要医療機関' || t === '緊急医療') return '要医療機関';
+  if (t === '局所筋骨格' || t === '神経系' || t === '心理社会的' || t === '自律神経') return t;
+  return '局所筋骨格'; // 記述的トラック（鍼適応）は局所筋骨格に集約
+}
+
+// 選択部位の疾患マスタを読み込み、内部正準形に正規化する
 async function loadRegion(key) {
   const cfg = REGIONS[key];
   const raw = await fetch(cfg.file).then(r => r.json());
   const root = cfg.wrapped ? raw[0] : raw;
-  DISEASES = root.diseases;
-  BRANCHES = root.branches;
-  PERITONEAL = root.peritoneal_sign_override || null;
+
+  // branches: 配列形式 {id,name,...} ↔ オブジェクト形式 {name:desc} を吸収
+  const idToName = {};
+  if (Array.isArray(root.branches)) {
+    BRANCHES = {};
+    root.branches.forEach(b => { BRANCHES[b.name] = b.desc || b.name; idToName[b.id] = b.name; });
+  } else {
+    BRANCHES = root.branches || {};
+  }
+
+  // diseases: branch(配列/文字列)→表示名配列、severity/track 正規化、follow_up 入れ子の平坦化
+  DISEASES = (root.diseases || []).map(d => {
+    const bs = Array.isArray(d.branch) ? d.branch : [d.branch];
+    d._branches = bs.map(b => idToName[b] || b);
+    d._severity = normSeverity(d.severity);
+    d._track = canonTrack(d);
+    if (d.follow_up && d.follow_up.follow_up_threshold && !d.follow_up_threshold) {
+      d.follow_up_threshold = d.follow_up.follow_up_threshold;
+    }
+    return d;
+  });
+
+  // 強制🔴オーバーライド（腹膜刺激/血管系など）を統一形に収集
+  OVERRIDES = [];
+  if (root.peritoneal_sign_override) {
+    OVERRIDES.push({ signs: root.peritoneal_sign_override.signs || [], note: root.peritoneal_sign_override.note, title: '腹膜刺激徴候陽性' });
+  }
+  if (root.overrides) {
+    for (const k of Object.keys(root.overrides)) {
+      const o = root.overrides[k];
+      OVERRIDES.push({ signs: o.trigger_any || o.signs || [], note: o.note, title: '緊急所見陽性（要医療機関）' });
+    }
+  }
   state.region = key;
 }
 
@@ -339,7 +389,7 @@ function renderBranch() {
     btn.addEventListener('click', () => {
       state.branch = btn.dataset.branch;
       state.candidates = DISEASES
-        .filter(d => d.branch === state.branch)
+        .filter(d => (d._branches || [d.branch]).includes(state.branch))
         .map(d => d.id);
       state.step = 3;
       renderStep();
@@ -502,11 +552,10 @@ function effectiveSeverity(s) {
     return acute ? d.severity_conditional['急性期'] : d.severity_conditional['慢性期'];
   }
   // 経過観察トラック：レッドフラッグ所見が指定数以上揃えば格上げ
-  if (d.severity === '経過観察' || d.treatment_track === '経過観察') {
+  if (d._track === '経過観察') {
     return redflagsMet(s) ? (d.redflag_escalation && d.redflag_escalation.escalate_to || '要注意') : '経過観察';
   }
-  if (d.severity) return d.severity;
-  return undefined;
+  return d._severity;
 }
 
 // 経過観察トラックの redflag_escalation 条件を満たすか（陽性所見とレッドフラッグ群の一致数で判定）
@@ -527,13 +576,13 @@ function proceedAfterScoring() {
 
   // findings を持つ疾患は所見で浮いた時(>0)、持たない疾患は候補入り=示唆 とみなす
   const active = s => s.disease.findings ? s.findingScore > 0 : true;
-  const isDanger = d => d.prevalence === 'rare_redflag' || d.treatment_track === '要医療機関';
+  const isDanger = d => d.prevalence === 'rare_redflag' || d._track === '要医療機関';
 
-  // 🔴🔴 腹膜刺激徴候オーバーライド：筋性防御・反跳痛が陽性ならどの疾患でも強制遮断（穿孔・腹膜炎）
-  if (PERITONEAL && Array.isArray(PERITONEAL.signs)) {
-    const hit = state.scored.some(s => (s.hits || []).some(h => h.ans === 'pos' && PERITONEAL.signs.includes(h.sign)));
+  // 🔴🔴 強制オーバーライド：腹膜刺激徴候/血管系レッドフラッグなどが陽性ならどの疾患でも強制遮断
+  for (const ov of OVERRIDES) {
+    const hit = state.scored.some(s => (s.hits || []).some(h => h.ans === 'pos' && ov.signs.includes(h.sign)));
     if (hit) {
-      state.blockReasons = [{ title: '腹膜刺激徴候陽性', message: PERITONEAL.note || '穿孔・腹膜炎の疑い。直ちに医療機関へ。' }];
+      state.blockReasons = [{ title: ov.title, message: ov.note || '直ちに医療機関へ。' }];
       state.step = 99;
       return renderStep();
     }
@@ -670,7 +719,7 @@ function renderTreatment() {
   renderProgress();
 
   // 表示する示唆：スコア降順。要医療機関・レッドフラッグはスコアに関わらず常に表示。
-  const isDanger = d => d.prevalence === 'rare_redflag' || d.treatment_track === '要医療機関';
+  const isDanger = d => d.prevalence === 'rare_redflag' || d._track === '要医療機関';
   const suggestions = state.scored.filter(s => s.total > 0 || isDanger(s.disease));
 
   // Step⑤の高位
@@ -697,10 +746,11 @@ function renderTreatment() {
   // 示唆カード
   const maxTotal = Math.max(...suggestions.map(s => s.total), 1);
   const sugHtml = suggestions.length ? suggestions.map((s, i) => {
-    const txs = treatmentsForTrack(s.disease.treatment_track);
-    const isObs = s.disease.treatment_track === '経過観察';
-    const isReferral = s.disease.treatment_track === '腰橋渡し';
-    const isRed = !isObs && !isReferral && (s.disease.prevalence === 'rare_redflag' || s.disease.treatment_track === '要医療機関');
+    const track = s.disease._track || s.disease.treatment_track;
+    const txs = treatmentsForTrack(track);
+    const isObs = track === '経過観察';
+    const isReferral = track === '腰橋渡し';
+    const isRed = !isObs && !isReferral && (s.disease.prevalence === 'rare_redflag' || track === '要医療機関');
     const hitTxt = s.hits.length
       ? `<ul class="hit-list">${s.hits.map(h =>
           `<li>${h.sign} <span class="${h.contrib > 0 ? 'plus' : 'minus'}">${h.contrib > 0 ? '+' : ''}${h.contrib}</span></li>`).join('')}</ul>`
@@ -708,7 +758,7 @@ function renderTreatment() {
 
     const obsHtml = (() => {
       const th = s.disease.follow_up_threshold || {};
-      const thTxt = [th.sessions ? th.sessions + '回' : '', th.weeks ? th.weeks + '週' : ''].filter(Boolean).join(' / ');
+      const thTxt = [(th.sessions || th.visits) ? (th.sessions || th.visits) + '回' : '', th.weeks ? th.weeks + '週' : ''].filter(Boolean).join(' / ');
       const escalated = redflagsMet(s);
       return `<div class="obs-block">
         <p class="obs-h">📋 経過観察トラック</p>
@@ -733,7 +783,7 @@ function renderTreatment() {
       : isReferral
       ? referralHtml
       : `<div class="tx-block">
-           <p class="tx-track">治療方針：<strong>${s.disease.treatment_track}</strong> — ${TRACK_NOTE[s.disease.treatment_track] || ''}</p>
+           <p class="tx-track">治療方針：<strong>${s.disease.treatment_track}</strong> — ${TRACK_NOTE[track] || ''}</p>
            ${txs.map(t => `
              <div class="tx">
                <div class="tx-head">${t.mechanism} <span class="tag">${t.category}</span> <span class="tag light">${t.level}</span></div>
@@ -762,7 +812,7 @@ function renderTreatment() {
           const pn = findPeripheralNerve(s.disease.name);
           return pn ? `<div class="derm-block"><div class="derm-h">末梢神経支配（${pn.name}）</div><div class="derm-row">感覚 ${pn.nerve.sensory_area}</div>${pn.nerve.motor ? `<div class="derm-row">運動 ${pn.nerve.motor}</div>` : ''}</div>` : '';
         })()}
-        ${s.disease.composite_rule ? `<div class="subtypes"><div class="subtypes-h">複合判定：${s.disease.composite_rule.rule}</div>${s.disease.composite_rule.items.map(it => `<div class="subtype">・${it}</div>`).join('')}</div>` : ''}
+        ${(s.disease.composite_rule && s.disease.composite_rule.items) ? `<div class="subtypes"><div class="subtypes-h">複合判定：${s.disease.composite_rule.rule || ''}</div>${s.disease.composite_rule.items.map(it => `<div class="subtype">・${it}</div>`).join('')}</div>` : ''}
         ${s.disease.subtypes ? `<div class="subtypes"><div class="subtypes-h">病型（参考表示）</div>${Object.entries(s.disease.subtypes).map(([k, v]) => `<div class="subtype"><b>${k}</b> ${v}</div>`).join('')}</div>` : ''}
       </div>`;
   }).join('') : `<div class="card"><p class="lead">明確に示唆される疾患はありませんでした。問診・所見を見直してください。</p></div>`;
