@@ -1,0 +1,176 @@
+{
+  "schema_name": "karte",
+  "version": "1.0",
+  "description": "アプリ全体の単一データモデル。問診UIがこれを上から埋める。Step3エンジン出力が該当欄に自動流し込み。",
+  "profile": {
+    "karte_no": null,
+    "name": null,
+    "birth_date": null,
+    "age": null,
+    "sex": null,
+    "disease_duration_years": null,
+    "chief_complaint": null,
+    "diagnosis_name": null
+  },
+  "step1_acute_chronic": {
+    "label": "急性痛か慢性痛か明らかにする",
+    "pain_duration": null,
+    "classification": null,
+    "_enum_classification": ["急性(3ヶ月以下)", "慢性(3ヶ月以上)"],
+    "_logic": "3ヶ月境界。急性=原因追及、慢性=原因追及しても見つからなければまず痛みを止める治療を始める。外傷では痛い場所と悪い場所が一致。"
+  },
+  "step2_tissue_prediction": {
+    "label": "痛みの原因がどの組織にあるかを予想する",
+    "pain_quality": null,
+    "_enum_pain_quality": ["鋭い(ピリピリ・ズキズキ)", "鈍い(重だるい・張ったような)"],
+    "pain_range": null,
+    "_enum_pain_range": ["点(場所が限定される)", "面(場所が大まか)"],
+    "relief_factor": null,
+    "aggravation_factor": null,
+    "predicted_tissue": [],
+    "_enum_predicted_tissue": ["皮膚", "神経", "骨", "関節", "内臓", "筋肉", "靭帯", "椎間板", "精神"],
+    "_logic": "鋭い→皮膚/神経、鈍い→筋肉/内臓/関節/骨。点→皮膚/神経/骨/関節、面→内臓/筋肉/靭帯/(神経)。常に→神経、触れて→皮膚、動作→骨/筋肉/関節、食事排泄→内臓、精神的負荷→精神。炎症時は鈍痛が鋭く・面が点になりうる。"
+  },
+  "step3_disease": {
+    "label": "疾患を把握する",
+    "exam_physical": {
+      "balre_sign": null,
+      "pronation_supination": null,
+      "pathological_reflex": null
+    },
+    "exam_spinal": {
+      "reflex": null,
+      "muscle_strength": null,
+      "sensory": null
+    },
+    "exam_bone": {
+      "percussion_pain": null
+    },
+    "exam_joint": {
+      "heat": null,
+      "swelling": null,
+      "redness": null,
+      "rom_test": null
+    },
+    "exam_muscle": {
+      "tenderness": null
+    },
+    "exam_psych": {
+      "interest_loss": null
+    },
+    "pain_location_and_state": null,
+    "_pain_location_note": "部位と痛みの性質を書き入れる（人体図にマーキング）",
+    "engine_output": {
+      "region": null,
+      "branch": null,
+      "confirmed_disease": null,
+      "differential_candidates": [],
+      "cause_tissue": null,
+      "treatment_track": null,
+      "_source": "既存14部位＋全身マスタのエンジン出力が自動流し込み"
+    }
+  },
+  "step4_red_flag": {
+    "label": "危険因子(レッドフラッグ)を確認する",
+    "present": null,
+    "_enum_present": ["あり", "なし"],
+    "content": null,
+    "checks": {
+      "severe_pain": null,
+      "motor_disturbance": null,
+      "autonomic_reaction": null,
+      "widespread_pain": null,
+      "progressive_48h": null,
+      "bladder_bowel_dysfunction": null
+    },
+    "_logic": "激しい痛み→激しい炎症/損傷。箸/ボタン/字/歩行不能→運動障害=神経異常。血圧上昇/冷汗/動悸/嘔吐→自律神経反応=強い痛み/激しい炎症。全身/半身→脊髄・脳レベル。48h以上で悪化→進行性疾患。膀胱直腸障害→脊髄異常。"
+  },
+  "step5_pain_level": {
+    "label": "痛みのレベルを考える",
+    "level": null,
+    "_enum_level": ["末梢神経レベル", "脊髄レベル", "脳レベル"],
+    "checks": {
+      "pain_distribution": null,
+      "_enum_pain_distribution": ["局所に中心(末梢)", "両側に存在(脊髄)", "広範囲/全身症状(脳)"],
+      "cold_symptoms": null,
+      "_enum_cold_symptoms": ["局所的自律神経症状(脊髄)", "手足/全身の冷え(脳)"],
+      "postural_change_muscle_tension": null,
+      "diarrhea_constipation": null,
+      "dry_mouth_eye": null,
+      "weather_sensitivity": null,
+      "emotion_sensitivity": null,
+      "thought_related_change": null,
+      "sleep_disturbance": null
+    },
+    "_logic": "範囲局所→末梢、両側→脊髄、広範囲/全身→脳。姿勢変化/筋緊張・下痢便秘・ドライマウス/アイ→脊髄or脳。天気/感情/思考/睡眠障害→脳レベル。既存level_engineと同一概念。",
+    "_engine_ref": "既存level_engine(末梢/脊髄/脳)へマッピング"
+  },
+  "step6_yellow_flag": {
+    "label": "イエローフラッグを確認する",
+    "_axis": "診断トラックと別軸。慢性化・心理社会的因子。",
+    "checks": {
+      "rest_until_cured": null,
+      "limiting_activities": null,
+      "rest_is_best": null,
+      "movement_worsens": null,
+      "past_work_absence": null,
+      "constant_anxiety_tension": null,
+      "constant_depression": null,
+      "heavy_or_monotonous_work": null
+    },
+    "result": null,
+    "_logic": "複数該当→セルフケア等の患者教育が必要。鑑別結果と並列表示。"
+  },
+  "step7_goal": {
+    "label": "ゴールを設定する",
+    "short_term": null,
+    "long_term": null,
+    "final": null
+  },
+  "stimulus_decision": {
+    "label": "刺激量の決定",
+    "_note": "東洋医学的所見はtcm_findings_schemaを参照。ここはref のみ。",
+    "tcm_ref": {
+      "pulse": "tcm_findings.pulse",
+      "tongue_color": "tcm_findings.tongue.color",
+      "tongue_shape": "tcm_findings.tongue.shape",
+      "muscle_hardness": "tcm_findings.muscle_hardness"
+    },
+    "phase": null,
+    "_phase_note": "脈・舌・硬さから時期(急性期/回復期/慢性期等)を判定"
+  },
+  "treatment_plan": {
+    "label": "治療プラン",
+    "treatment_location": null,
+    "_enum_treatment_location": ["遠隔(分節)", "遠隔(四肢)", "遠隔(顔面部)", "局所", "その他"],
+    "tools_used": [],
+    "_enum_tools_used": ["鍼", "鍼通電", "接触鍼", "温熱刺激"],
+    "mechanism": [],
+    "_enum_mechanism": [
+      "オピオイドμ受容体トロールA1受容体を介した鎮痛",
+      "ゲートコントロール説(下行性疼痛抑制系の賦活)",
+      "下行性疼痛抑制系(脊髄後角の抑制)",
+      "Ia/Ib抑制を介した筋緊張の緩和",
+      "体性自律神経反射を介した内臓調整(自律神経調節)",
+      "軸索反射を介した血流改善",
+      "角質細胞を介した免疫・内分泌調整",
+      "神経伝達物質を介した作用",
+      "広汎性侵害抑制調節(DNIC)"
+    ],
+    "_resolver_note": "step3_disease.engine_output.treatment_track → treatment_master参照 → 該当機序のみ候補表示。treatment_resolver仕様を参照。"
+  },
+  "specific_treatment": {
+    "label": "具体的な治療",
+    "technique": [],
+    "_enum_technique": ["単鍼", "置鍼", "雀啄", "鍼通電", "接触鍼", "灸", "炎頭鍼", "その他"],
+    "needle_size": null,
+    "treatment_time": null,
+    "other_options": null
+  },
+  "notes": {
+    "special_notes": null,
+    "past_history": null,
+    "family_history": null,
+    "medication": null
+  }
+}

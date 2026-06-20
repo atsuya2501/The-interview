@@ -1,0 +1,112 @@
+{
+  "schema_name": "intake_flow",
+  "version": "1.0",
+  "description": "問診の発話順(早見表Step1-6)。各質問→回答選択肢→示唆組織/レベル→書き込むkarte_schemaキー。判定順(エンジン)とは分離。",
+  "flow": [
+    {
+      "step": 1,
+      "title": "急性痛か慢性痛か明らかにする",
+      "questions": [
+        {
+          "id": "q1_1",
+          "text": "いつから痛みがありますか？",
+          "input_type": "duration",
+          "karte_field": "step1_acute_chronic.pain_duration",
+          "derive": {
+            "target": "step1_acute_chronic.classification",
+            "rule": "3ヶ月以下→急性(原因追及)、3ヶ月以上→慢性(原因追及しても見つからなければ痛みを止める治療を始める)"
+          }
+        }
+      ]
+    },
+    {
+      "step": 2,
+      "title": "痛みの原因がどの組織にあるかを予想する",
+      "questions": [
+        {
+          "id": "q2_1",
+          "text": "どのような痛みですか？",
+          "input_type": "single_select",
+          "options": ["鋭い", "鈍い"],
+          "karte_field": "step2_tissue_prediction.pain_quality",
+          "tissue_hint": {"鋭い": ["皮膚", "神経"], "鈍い": ["筋肉", "内臓", "関節", "骨"]},
+          "note": "鈍い痛みが炎症時には鋭くなることもある"
+        },
+        {
+          "id": "q2_2",
+          "text": "痛い部位は何処ですか？",
+          "input_type": "single_select",
+          "options": ["点(場所が限定される)", "面(場所が大まか)"],
+          "karte_field": "step2_tissue_prediction.pain_range",
+          "tissue_hint": {"点": ["皮膚", "神経", "骨", "関節"], "面": ["内臓", "筋肉", "靭帯", "神経"]},
+          "note": "面となる組織も炎症時には点になることがある"
+        },
+        {
+          "id": "q2_3",
+          "text": "どんな時に痛いですか？楽ですか？",
+          "input_type": "multi_select",
+          "options": ["常に", "触れられたとき", "動作に伴う", "食事や排泄に関係", "不安・緊張などの精神的負荷"],
+          "karte_field": "step2_tissue_prediction.aggravation_factor",
+          "tissue_hint": {
+            "常に": ["神経(慢性痛も含む)"],
+            "触れられたとき": ["皮膚"],
+            "動作に伴う": ["骨", "筋肉", "関節"],
+            "食事や排泄に関係": ["内臓"],
+            "不安・緊張などの精神的負荷": ["精神"]
+          }
+        }
+      ]
+    },
+    {
+      "step": 3,
+      "title": "疾患を把握する",
+      "redirect": "既存Step3エンジン(14部位＋全身マスタ)を起動。部位ごとの診察を参照。engine_outputがkarteに自動流し込み。",
+      "karte_field": "step3_disease.engine_output"
+    },
+    {
+      "step": 4,
+      "title": "危険因子(レッドフラッグ)を確認する",
+      "questions": [
+        {"id": "q4_1", "text": "激しい痛みはありますか？", "input_type": "boolean", "karte_field": "step4_red_flag.checks.severe_pain", "flag_if_yes": "激しい炎症や損傷の可能性"},
+        {"id": "q4_2", "text": "箸が持てない、ボタンが留められない、文字が書けない、歩けないなどの症状はありますか？", "input_type": "boolean", "karte_field": "step4_red_flag.checks.motor_disturbance", "flag_if_yes": "運動障害=神経の異常"},
+        {"id": "q4_3", "text": "血圧上昇・冷や汗・動悸・嘔吐などがありますか？", "input_type": "boolean", "karte_field": "step4_red_flag.checks.autonomic_reaction", "flag_if_yes": "自律神経系反応=強い痛みや激しい炎症"},
+        {"id": "q4_4", "text": "痛みは全身、または半身に広がっていますか？", "input_type": "boolean", "karte_field": "step4_red_flag.checks.widespread_pain", "flag_if_yes": "局所でなく脊髄・脳レベルの問題"},
+        {"id": "q4_5", "text": "痛みはどのように変化していますか？", "input_type": "single_select", "options": ["改善傾向", "不変", "発症から48時間以上経過して悪化"], "karte_field": "step4_red_flag.checks.progressive_48h", "flag_if": {"発症から48時間以上経過して悪化": "進行性疾患"}},
+        {"id": "q4_6", "text": "便や尿の具合はどうですか？", "input_type": "single_select", "options": ["正常", "便や尿が出にくい(膀胱直腸障害)"], "karte_field": "step4_red_flag.checks.bladder_bowel_dysfunction", "flag_if": {"便や尿が出にくい(膀胱直腸障害)": "脊髄の異常"}}
+      ],
+      "derive": {"target": "step4_red_flag.present", "rule": "いずれかフラグ→あり、内容をcontentに集約"}
+    },
+    {
+      "step": 5,
+      "title": "痛みのレベルを考える",
+      "questions": [
+        {"id": "q5_1", "text": "痛みの範囲は広いですか？他の部位にも痛みがありますか？", "input_type": "single_select", "options": ["局所に中心がある", "両側に存在する", "広範囲/全身症状がある"], "karte_field": "step5_pain_level.checks.pain_distribution", "level_map": {"局所に中心がある": "末梢神経レベル", "両側に存在する": "脊髄レベル", "広範囲/全身症状がある": "脳レベル"}},
+        {"id": "q5_2", "text": "冷えなどはありますか？", "input_type": "single_select", "options": ["なし", "局所的な自律神経症状(一部の冷え・皮膚症状)", "手足や全身の冷え"], "karte_field": "step5_pain_level.checks.cold_symptoms", "level_map": {"局所的な自律神経症状(一部の冷え・皮膚症状)": "脊髄レベル", "手足や全身の冷え": "脳レベル"}},
+        {"id": "q5_3", "text": "姿勢的変化がありますか？筋緊張がありますか？", "input_type": "boolean", "karte_field": "step5_pain_level.checks.postural_change_muscle_tension", "level_if_yes": ["脊髄レベル", "脳レベル"]},
+        {"id": "q5_4", "text": "下痢や便秘をしばしば起こしますか？", "input_type": "boolean", "karte_field": "step5_pain_level.checks.diarrhea_constipation", "level_if_yes": ["脊髄レベル", "脳レベル"]},
+        {"id": "q5_5", "text": "目の乾燥、口渇などのドライマウス・ドライアイがありますか？", "input_type": "boolean", "karte_field": "step5_pain_level.checks.dry_mouth_eye", "level_if_yes": ["脊髄レベル", "脳レベル"]},
+        {"id": "q5_6", "text": "天気で痛みが変化することはありますか？", "input_type": "boolean", "karte_field": "step5_pain_level.checks.weather_sensitivity", "level_if_yes": ["脳レベル"]},
+        {"id": "q5_7", "text": "感情によって症状は変化しますか？", "input_type": "boolean", "karte_field": "step5_pain_level.checks.emotion_sensitivity", "level_if_yes": ["脳レベル"]},
+        {"id": "q5_8", "text": "以下の思考と関連して症状は変化しますか？(過去の出来事/悲観的/落ち着かない/無力感/低い自己肯定感)", "input_type": "boolean", "karte_field": "step5_pain_level.checks.thought_related_change", "level_if_yes": ["脳レベル"]},
+        {"id": "q5_9", "text": "睡眠障害がありますか？", "input_type": "boolean", "karte_field": "step5_pain_level.checks.sleep_disturbance", "level_if_yes": ["脳レベル"]}
+      ],
+      "derive": {"target": "step5_pain_level.level", "rule": "回答を集計し末梢/脊髄/脳を判定。既存level_engineへマッピング。"}
+    },
+    {
+      "step": 6,
+      "title": "イエローフラッグを確認する",
+      "axis": "診断と別軸。慢性化リスク評価。",
+      "questions": [
+        {"id": "q6_1", "text": "痛みが完全に治るまで仕事などを休むべきだと考えていますか？", "input_type": "boolean", "karte_field": "step6_yellow_flag.checks.rest_until_cured"},
+        {"id": "q6_2", "text": "痛みのためにやりたいことを制限していますか？", "input_type": "boolean", "karte_field": "step6_yellow_flag.checks.limiting_activities"},
+        {"id": "q6_3", "text": "痛みを抑えるためには安静が一番であると考えていますか？", "input_type": "boolean", "karte_field": "step6_yellow_flag.checks.rest_is_best"},
+        {"id": "q6_4", "text": "動くと痛みが悪化すると思いますか？", "input_type": "boolean", "karte_field": "step6_yellow_flag.checks.movement_worsens"},
+        {"id": "q6_5", "text": "今までに痛みのために仕事を休んだことがありますか？", "input_type": "boolean", "karte_field": "step6_yellow_flag.checks.past_work_absence"},
+        {"id": "q6_6", "text": "常に不安や緊張があると感じますか？", "input_type": "boolean", "karte_field": "step6_yellow_flag.checks.constant_anxiety_tension"},
+        {"id": "q6_7", "text": "常に憂うつな気分であると感じますか？", "input_type": "boolean", "karte_field": "step6_yellow_flag.checks.constant_depression"},
+        {"id": "q6_8", "text": "仕事が重労働もしくは単純作業が多いと感じますか？", "input_type": "boolean", "karte_field": "step6_yellow_flag.checks.heavy_or_monotonous_work"}
+      ],
+      "derive": {"target": "step6_yellow_flag.result", "rule": "複数該当→セルフケア等の患者教育が必要フラグ。鑑別結果と並列表示。"}
+    }
+  ]
+}

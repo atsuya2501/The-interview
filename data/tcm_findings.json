@@ -1,0 +1,24 @@
+{
+  "schema_name": "tcm_findings",
+  "version": "1.0",
+  "description": "東洋医学的所見の共有リソース。西洋医学カルテ(刺激量決定)と将来の東洋医学問診システムの両方から参照。dermatome_map等と同じ共有リソース思想。二重管理を構造で防ぐ。",
+  "shared_by": ["karte(刺激量決定)", "tcm_intake_system(将来)"],
+  "pulse": {
+    "strength": null,
+    "_enum_strength": ["強い", "正常", "弱い"],
+    "_note": "脈の状態。刺激量決定の時期判定に使用。東洋医学では脈診の主要素。"
+  },
+  "tongue": {
+    "color": null,
+    "_enum_color": ["淡白", "正常", "紅・紫"],
+    "shape": null,
+    "_enum_shape": ["胖大(ワイド)", "正常", "老(シャープ)"]
+  },
+  "muscle_hardness": {
+    "label": "硬さ(抗重力筋)",
+    "value": null,
+    "_enum_value": ["硬い", "普通", "柔らかい"],
+    "_note": "抗重力筋の硬さ。刺激量・時期判定に使用。"
+  },
+  "_extension_note": "将来の東洋医学システムで証(弁証)・八綱・気血水・経絡所見等を追加する際、このスキーマを拡張。西洋カルテ側はpulse/tongue/muscle_hardnessのみ参照。"
+}
