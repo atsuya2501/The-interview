@@ -1,0 +1,110 @@
+{
+  "schema_name": "track_to_mechanism",
+  "version": "1.0",
+  "description": "疾患のtreatment_track → treatment_master機序idの対応。step5 levelとregionで動的に絞り込む。primary=第一選択、secondary=併用候補。表示は候補提示で術者が最終選択(Step3示唆思想と一貫)。",
+  "rules": {
+    "phase_depth": "急性=浅い刺激(opioid_receptor)、慢性=深い刺激(adenosine_a1)。stimulus_decision.phaseで切替。",
+    "ia_ib_region_gate": "ia_ib_inhibitionはregionが上肢系(肩・肘・手)または下肢系(臀部・大腿・膝・下腿・足)の時のみ有効。顎・頚部・頭・顔・胸・腹・腰では付与しない(理論上は存在するが現場で使い分けないため除外)。",
+    "level_filter": "step5_pain_level.level と treatment_master.level を突合し表示順を動的調整。"
+  },
+  "region_groups": {
+    "上肢系": ["shoulder", "elbow", "hand"],
+    "下肢系": ["buttock", "thigh", "knee", "lower_leg", "foot"]
+  },
+  "mappings": [
+    {"track": "緊急医療", "treat": false, "reason": "🔴。即医療機関。鍼適応外。"},
+    {"track": "経過観察", "treat": false, "merge_to": "全身調整・対症", "reason": "確定困難・他科主導。フォローのみ。間欠期の全身調整は全身調整trackに合流。"},
+    {"track": "腰部参照", "treat": "redirect", "redirect_to": "腰部マスタ", "reason": "referral_to_lumbar。機序は腰側で決定。"},
+    {"track": "頭部参照", "treat": "redirect", "redirect_to": "頭痛マスタ", "reason": "referral_to_head。"},
+    {
+      "track": "末梢神経絞扼",
+      "treat": true,
+      "primary": ["gate_control_local", "blood_flow"],
+      "secondary": ["gate_control_segment"],
+      "ia_ib_conditional": true,
+      "reason": "絞扼部局所鎮痛＋周囲血流改善。分節関与あれば同一分節ゲート併用。足根管・モートン・肘部管等。"
+    },
+    {
+      "track": "靭帯捻挫",
+      "treat": true,
+      "primary": ["opioid_receptor", "gate_control_local"],
+      "secondary": ["blood_flow"],
+      "phase_note": "急性=opioid_receptor(浅・炎症部位周囲)、回復期=blood_flow。",
+      "reason": "急性炎症が主。深部刺激は避ける。"
+    },
+    {
+      "track": "骨折",
+      "treat": "conditional",
+      "redirect_to": "整形外科(確定時)",
+      "primary": ["opioid_receptor"],
+      "reason": "骨癒合は鍼対象外。疼痛緩和補助の炎症周囲軽微刺激のみ。基本redirect寄り。"
+    },
+    {
+      "track": "腱断裂",
+      "treat": "conditional",
+      "redirect_to": "整形外科(急性)",
+      "primary": ["opioid_receptor", "blood_flow"],
+      "reason": "急性は整形。保存・術後リハ期に血流改善・鎮痛で関与。"
+    },
+    {
+      "track": "腱・腱付着部",
+      "treat": true,
+      "primary": ["adenosine_a1", "blood_flow"],
+      "ia_ib_conditional": true,
+      "reason": "腱付着部症。圧痛・反応点へ雀啄/響き。筋緊張関与＋下肢/上肢ならIa/Ib。"
+    },
+    {
+      "track": "足底腱膜・筋膜",
+      "treat": true,
+      "primary": ["adenosine_a1", "blood_flow"],
+      "secondary": ["gate_control_local"],
+      "reason": "足底腱膜炎。踵骨付着部の圧痛点へ雀啄・響き。"
+    },
+    {
+      "track": "骨・付着部",
+      "treat": true,
+      "primary": ["adenosine_a1", "gate_control_local"],
+      "reason": "種子骨炎等。局所反応点。"
+    },
+    {
+      "track": "変形性関節症",
+      "treat": true,
+      "primary": ["gate_control_local"],
+      "secondary": ["blood_flow", "gate_control_segment"],
+      "ia_ib_conditional": true,
+      "reason": "OA。関節周囲局所鎮痛。下肢/上肢なら関節を跨ぐ筋のIa/Ib緩和を併用。慢性で分節ゲートも。"
+    },
+    {
+      "track": "変形・アライメント",
+      "treat": true,
+      "primary": ["blood_flow"],
+      "secondary": ["gate_control_local"],
+      "ia_ib_conditional": true,
+      "reason": "外反母趾・扁平足等。関連筋の血流・緊張緩和。対症＋装具/運動指導が主。"
+    },
+    {"track": "痛風", "treat": false, "redirect_to": "内科", "merge_to": "全身調整・対症", "reason": "発作期は内科主導。間欠期の全身調整は合流。"},
+    {
+      "track": "対症・足底ケア",
+      "treat": "conditional",
+      "primary": ["gate_control_local"],
+      "reason": "鶏眼・胼胝。足底ケア・装具が主。鍼は限定的。"
+    },
+    {
+      "track": "全身調整・対症",
+      "treat": true,
+      "primary": ["descending_inhibition", "autonomic_regulation"],
+      "secondary": ["neurotransmitter", "keratinocyte_immune"],
+      "reason": "線維筋痛症等の中枢性・全身性。脳レベル機序主体。異分節遠隔。"
+    }
+  ],
+  "ia_ib_resolution": {
+    "description": "ia_ib_conditional:true のtrackは、step3_disease.engine_output.region が region_groups.上肢系 または 下肢系 に含まれる時のみ ia_ib_inhibition をsecondaryに追加。それ以外のregionでは付与しない。",
+    "applies_to_regions": ["shoulder", "elbow", "hand", "buttock", "thigh", "knee", "lower_leg", "foot"]
+  },
+  "level_filter_rule": {
+    "末梢": "treatment_master.level=末梢 を最優先表示",
+    "脊髄": "level=脊髄 を優先、末梢を併用候補に",
+    "脳": "level=脳 を優先(下行抑制・自律神経調整・神経伝達物質・角質細胞)",
+    "note": "trackのprimaryとstep5 level優先機序が食い違う場合は両方提示し術者判断。"
+  }
+}

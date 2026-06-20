@@ -1,4 +1,4 @@
-const CACHE = 'itami-kanbe-v18';
+const CACHE = 'itami-kanbe-v19';
 const ASSETS = [
   '/',
   '/index.html',
@@ -21,6 +21,7 @@ const ASSETS = [
   '/data/karte_schema.json',
   '/data/intake_flow.json',
   '/data/tcm_findings.json',
+  '/data/track_to_mechanism.json',
   '/data/treatment_master.json',
   '/data/test_methods.json',
   '/data/dermatome_map.json',

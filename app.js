@@ -18,6 +18,7 @@ let TEST_METHODS = {}; // 検査名 → 実施方法（部位共通）
 let OVERRIDES = [];    // 部位レベルの強制🔴オーバーライド [{signs,note,title}]（腹膜刺激/血管など）
 let DERMATOME = null;  // 神経根デルマトームマップ（共有リソース）
 let PERIPHERAL = null; // 末梢神経支配領域マップ（共有リソース）
+let TRACK_MECH = null; // treatment_track → 機序id 対応（treatment_resolver）
 
 // 部位定義。wrapped=true は [{...}] の配列ラップ（首）、false は素のオブジェクト（頭・腰）。
 const REGIONS = {
@@ -151,16 +152,18 @@ const app = () => document.getElementById('app');
 async function init() {
   try {
     // 部位共通マスタ（治療・検査方法）を先読み
-    const [tx, methods, derm, periph] = await Promise.all([
+    const [tx, methods, derm, periph, trackMech] = await Promise.all([
       fetch('data/treatment_master.json').then(r => r.json()),
       fetch('data/test_methods.json').then(r => r.json()),
       fetch('data/dermatome_map.json').then(r => r.json()),
-      fetch('data/peripheral_nerve_map.json').then(r => r.json())
+      fetch('data/peripheral_nerve_map.json').then(r => r.json()),
+      fetch('data/track_to_mechanism.json').then(r => r.json())
     ]);
     TREATMENTS = tx[0].treatments;
     TEST_METHODS = methods.test_methods || {};
     DERMATOME = derm || null;
     PERIPHERAL = periph || null;
+    TRACK_MECH = trackMech || null;
     renderStep(); // step 0 = 部位選択
   } catch (e) {
     app().innerHTML = `<div class="card error">データの読み込みに失敗しました：${e.message}</div>`;
@@ -721,6 +724,31 @@ function treatmentsForTrack(track) {
   return TREATMENTS.filter(rule);
 }
 
+// treatment_resolver：疾患の treatment_track（元の記述的トラック）から
+// track_to_mechanism で機序id群を解決し、TREATMENTS オブジェクトに変換する。
+// ・primary→secondary の順、id重複排除
+// ・ia_ib_conditional は region が上肢系/下肢系の時のみ ia_ib_inhibition を追加
+// 既存12部位の正準トラック（局所筋骨格 等）はマッピングに無いため null を返し従来表示にフォールバック。
+function resolveMechanisms(d) {
+  if (!TRACK_MECH || !Array.isArray(TRACK_MECH.mappings)) return null;
+  const m = TRACK_MECH.mappings.find(x => x.track === d.treatment_track);
+  if (!m || m.treat === false || m.treat === 'redirect') return null;
+
+  const ids = [...(m.primary || [])];
+  const sec = [...(m.secondary || [])];
+  if (m.ia_ib_conditional) {
+    const regions = (TRACK_MECH.ia_ib_resolution && TRACK_MECH.ia_ib_resolution.applies_to_regions) || [];
+    if (regions.includes(state.region)) sec.push('ia_ib_inhibition');
+  }
+  const primarySet = new Set(m.primary || []);
+  const seen = new Set();
+  const txs = ids.concat(sec)
+    .filter(id => !seen.has(id) && seen.add(id))
+    .map(id => TREATMENTS.find(t => t.id === id))
+    .filter(Boolean);
+  return { txs, primarySet, reason: m.reason, phaseNote: m.phase_note, conditional: m.treat === 'conditional', redirect: m.redirect_to };
+}
+
 function renderTreatment() {
   state.step = 99; // 結果画面（プログレス満タン）
   renderProgress();
@@ -754,7 +782,8 @@ function renderTreatment() {
   const maxTotal = Math.max(...suggestions.map(s => s.total), 1);
   const sugHtml = suggestions.length ? suggestions.map((s, i) => {
     const track = s.disease._track || s.disease.treatment_track;
-    const txs = treatmentsForTrack(track);
+    const resolved = resolveMechanisms(s.disease);
+    const txs = (resolved && resolved.txs.length) ? resolved.txs : treatmentsForTrack(track);
     const isObs = track === '経過観察';
     const isReferral = track === '腰橋渡し';
     const isRed = !isObs && !isReferral && (s.disease.prevalence === 'rare_redflag' || track === '要医療機関');
@@ -793,9 +822,10 @@ function renderTreatment() {
       ? referralHtml
       : `<div class="tx-block">
            <p class="tx-track">治療方針：<strong>${s.disease.treatment_track}</strong> — ${TRACK_NOTE[track] || ''}</p>
+           ${resolved && resolved.reason ? `<p class="resolver-reason">🧭 ${resolved.reason}</p>` : ''}
            ${txs.map(t => `
              <div class="tx">
-               <div class="tx-head">${t.mechanism} <span class="tag">${t.category}</span> <span class="tag light">${t.level}</span></div>
+               <div class="tx-head">${(resolved && resolved.primarySet.has(t.id)) ? '<span class="tag primary-tag">第一選択</span> ' : ''}${t.mechanism} <span class="tag">${t.category}</span> <span class="tag light">${t.level}</span></div>
                <div class="tx-body">
                  <div><b>刺激部位</b> ${t.stimulus_site}</div>
                  <div><b>治療点</b> ${t.treatment_location}</div>

@@ -141,6 +141,8 @@ h3 { font-size: .95rem; margin: .9rem 0 .4rem; color: var(--primary); }
 /* treatment */
 .tx-block { margin-top: .6rem; }
 .tx-track { font-size: .85rem; margin-bottom: .5rem; }
+.resolver-reason { font-size: .78rem; color: var(--muted); margin-bottom: .5rem; }
+.tag.primary-tag { background: var(--accent); color: #fff; }
 .tx { border: 1px solid var(--border); border-radius: 10px; padding: .6rem .75rem; margin-bottom: .5rem; background: #fafbfd; }
 .tx-head { font-weight: 600; font-size: .88rem; margin-bottom: .35rem; }
 .tx-body { font-size: .8rem; color: #333; display: grid; gap: .15rem; }
