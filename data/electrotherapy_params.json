@@ -1,0 +1,111 @@
+{
+  "schema_name": "electrotherapy_params",
+  "version": "1.0",
+  "evidence_level": "clinical_experience_animal_study",
+  "evidence_note": "周波数→脳内分泌物質は動物実験報告。周波数の使い分けは明確に未確定。刺激量・時間は論文によりまちまちで根拠なし。原著が一般オピオイド薬の使い分けから類推した参考値。Step3疾患マスタとは別格。",
+  "description": "鍼通電の機序別パラメータ(表d p.216)＋周波数→受容体→適応痛みの逆引き(表4-2 p.169)＋刺激量規則(本文p.169)。",
+  "intensity_rule": {
+    "description": "本文p.169。恐怖の有無で刺激強度を決定。脈所見(stimulus_modulation)とも整合。",
+    "fear_present": "刺激を感じる程度(弱め)",
+    "fear_absent": "筋肉が軽く収縮する程度(やや強め)",
+    "pulse_weak_override": "脈が弱い場合は恐怖の有無に関わらず弱め(stimulus_modulationのoverrideと連動)"
+  },
+  "time_rule": {
+    "default_min_minutes": 15,
+    "logic": "オピオイド放出に最低10分。最低15分以上推奨。ただし鍼の本数が多いとき=刺激過多になるため時間を短くする。",
+    "many_needles_note": "本数多い→短時間・弱め。本数少ない→強め・短時間も可。"
+  },
+  "mechanism_params": [
+    {
+      "mechanism_id": "ia_ib_inhibition",
+      "label": "Ia・Ib抑制→筋緊張の緩和",
+      "site": "筋肉",
+      "frequency_hz": "2Hz",
+      "frequency_range": "1〜10Hz",
+      "intensity": "筋が軽く収縮する程度",
+      "time_min": 5,
+      "note": "40Hz以上で強縮。筋緊張緩和目的。"
+    },
+    {
+      "mechanism_id": "blood_flow",
+      "label": "血流改善(神経)",
+      "site": "神経",
+      "frequency_hz": "2〜10Hz",
+      "intensity": "刺激を感じる程度",
+      "time_min": 10
+    },
+    {
+      "mechanism_id": "blood_flow",
+      "label": "血流改善(皮膚・筋肉)",
+      "site": "皮膚・筋肉",
+      "frequency_hz": "2Hz",
+      "frequency_range": "1〜10Hz",
+      "intensity": "刺激を感じる程度",
+      "time_min": 10,
+      "note": "ポリモーダル受容器の興奮が必要。"
+    },
+    {
+      "mechanism_id": "gate_control_local",
+      "label": "ゲートコントロール説",
+      "site": "障害分節",
+      "frequency_hz": "100Hz",
+      "intensity": "耐えられる範囲内",
+      "time_min": 5,
+      "note": "ゲートコントロール説。gate_control_segmentも同様。"
+    },
+    {
+      "mechanism_id": "gate_control_segment",
+      "label": "ゲートコントロール説(同一分節)",
+      "site": "障害分節",
+      "frequency_hz": "100Hz",
+      "intensity": "耐えられる範囲内",
+      "time_min": 5
+    },
+    {
+      "mechanism_id": "descending_inhibition",
+      "label": "下行性疼痛抑制系",
+      "site": "四肢",
+      "frequency_variants": [
+        {"frequency_hz": "4Hz", "frequency_range": "2〜10Hz", "opioid": "βエンドルフィン", "receptor": "μ", "time_min": 15},
+        {"frequency_hz": "2/15Hz", "frequency_range": "1〜5/10〜30Hz", "opioid": "エンケファリン", "receptor": "δ", "time_min": 15},
+        {"frequency_hz": "100Hz", "opioid": "ダイノルフィン", "receptor": "κ", "time_min": 15}
+      ],
+      "intensity": "刺激を感じる程度",
+      "note": "周波数で分泌される内因性オピオイドが変わる。痛みのタイプで逆引き選択(pain_type_to_frequency参照)。"
+    }
+  ],
+  "pain_type_to_frequency": {
+    "description": "表4-2(p.169)。痛みのタイプ→受容体→周波数の逆引き。step5_pain_levelの脳レベル内訳から自動提案。下行性疼痛抑制を選んだ時に発火。",
+    "input_ref": "step5_pain_level.checks (emotion_sensitivity / weather_sensitivity / thought_related_change 等)",
+    "rules": [
+      {
+        "pain_type": "あらゆる痛み(特に脊髄・末梢の痛み)",
+        "receptor": "μ",
+        "opioid": "βエンドルフィン",
+        "frequency_hz": "2Hz(下行性では4Hz/2〜10Hz)",
+        "time_min": 15,
+        "contraindication": "重度呼吸器患者は不適応(βエンドルフィンは呼吸抑制+)",
+        "default": true,
+        "note": "全身に受容体が存在=汎用。痛みタイプが特定できない場合のデフォルト。"
+      },
+      {
+        "pain_type": "情動に伴う痛み",
+        "trigger": "step5 emotion_sensitivity=true / thought_related_change=true(過去の出来事・悲観・無力感・低い自己肯定感で変化)",
+        "receptor": "δ",
+        "opioid": "エンケファリン",
+        "frequency_hz": "2/15Hz",
+        "time_min": 15,
+        "note": "扁桃体など情動関連部位に受容体。感情で症状変化する患者に。"
+      },
+      {
+        "pain_type": "交感神経依存性疼痛(気分・ストレス・天候で悪化)・かゆみ",
+        "trigger": "step5 weather_sensitivity=true / 自律神経症状 / 薬物依存背景",
+        "receptor": "κ",
+        "opioid": "ダイノルフィン",
+        "frequency_hz": "100Hz",
+        "time_min": 15,
+        "note": "自律神経系に関与する部位に受容体。天候・ストレスで悪化する交感神経性の痛み、かゆみに効果的。薬物依存患者にも(嫌悪感・依存形成しにくい)。"
+      }
+    ]
+  }
+}

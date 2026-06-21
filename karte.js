@@ -11,6 +11,7 @@ const app = () => document.getElementById('karte');
 const META = new Set(['schema_name', 'version', 'description', 'shared_by', 'master_type', 'fallback', 'architecture_note', 'severity_policy', 'level_handling']);
 const STORAGE_KEY = 'karte_form_data';   // 作業中の下書き
 const RECORDS_KEY = 'karte_records';      // 保存済みカルテ群
+let STIM_MOD = null;                      // stimulus_modulation（刺激量サジェスト）
 
 const LABELS = {
   profile: '基本情報', engine_output: '鑑別エンジン出力（自動入力）', checks: '確認項目',
@@ -49,9 +50,26 @@ const LABELS = {
 // パス単位のフィールド型上書き
 const FIELD_OVERRIDES = {
   'profile.sex': { type: 'select', options: ['男', '女'] },
-  'profile.birth_date': { type: 'date' },
+  'profile.birth_date': { type: 'birth' },
   'profile.age': { type: 'readonly' }
 };
+
+// 生年月日：西暦/月/日を別セレクトに（高齢者でも西暦を選びやすく）
+function renderBirth() {
+  const now = new Date().getFullYear();
+  const years = [];
+  for (let y = now; y >= 1915; y--) years.push(y);
+  const opt = (arr, suffix) => ['<option value=""></option>'].concat(arr.map(v => `<option value="${v}">${v}${suffix}</option>`)).join('');
+  const months = Array.from({ length: 12 }, (_, i) => i + 1);
+  const days = Array.from({ length: 31 }, (_, i) => i + 1);
+  return `<div class="k-field"><span class="k-label">生年月日</span>
+    <div class="opt-row birth-row">
+      <select data-path="profile.birth_year">${opt(years, '年')}</select>
+      <select data-path="profile.birth_month">${opt(months, '月')}</select>
+      <select data-path="profile.birth_day">${opt(days, '日')}</select>
+    </div>
+    <input type="hidden" data-path="profile.birth_date"></div>`;
+}
 
 function labelFor(key) { return LABELS[key] || key.replace(/_/g, ' '); }
 
@@ -61,7 +79,7 @@ function renderField(path, key, val, enumArr) {
   const ov = FIELD_OVERRIDES[dp];
 
   if (ov) {
-    if (ov.type === 'date') return `<div class="k-field"><span class="k-label">${label}</span><input type="date" data-path="${dp}"></div>`;
+    if (ov.type === 'birth') return renderBirth();
     if (ov.type === 'readonly') return `<div class="k-field"><span class="k-label">${label}</span><input type="text" data-path="${dp}" readonly placeholder="生年月日から自動計算"></div>`;
     if (ov.type === 'select') {
       const opts = ['<option value=""></option>'].concat(ov.options.map(o => `<option>${o}</option>`)).join('');
@@ -103,7 +121,49 @@ function renderSection(name, obj, depth, prefix) {
 function renderTcm(tcm) {
   const blocks = ['pulse', 'tongue', 'muscle_hardness']
     .filter(k => tcm[k]).map(k => renderSection(k, tcm[k], 1, 'tcm')).join('');
-  return `<section class="card k-section"><h2>東洋医学的所見（脈・舌・硬さ）</h2><p class="lead">刺激量・時期判定の参考。術者が記入。</p>${blocks}</section>`;
+  return `<section class="card k-section"><h2>東洋医学的所見（脈・舌・硬さ）</h2><p class="lead">刺激量・時期判定の参考。術者が記入。</p>${blocks}
+    <div id="stim-suggest" class="obs-block" hidden></div></section>`;
+}
+
+// 脈・舌・硬さ → 時期(phase)＋刺激サジェスト（stimulus_modulation, 臨床経験ベース）
+function updateStimulus() {
+  const box = document.getElementById('stim-suggest');
+  if (!box || !STIM_MOD) return;
+  const val = dp => (document.querySelector(`[data-path="${dp}"]`) || {}).value || '';
+  const pulse = val('tcm.pulse.strength');
+  const tColor = val('tcm.tongue.color'), tShape = val('tcm.tongue.shape');
+  const hard = val('tcm.muscle_hardness.value');
+  if (!pulse && !tColor && !tShape && !hard) { box.hidden = true; return; }
+
+  const pulseWeak = pulse === '弱い';
+  const pulseNormal = pulse === '強い' || pulse === '正常';
+  const tongueChanged = (tColor && tColor !== '正常') || (tShape && tShape !== '正常');
+
+  const lines = [];
+  if (pulse) {
+    if (pulseWeak) lines.push('刺激方法：置鍼・鍉鍼・接触鍼（弱い刺激）', '本数/刺激量：少なめ', '深さ：浅め');
+    else lines.push('刺激方法：鍼通電・雀啄（強めの手技も可）', '本数/刺激量：制限なし', '深さ：制限なし');
+  }
+  if (tColor || tShape) {
+    if (tongueChanged) lines.push('治療部位：末梢に加え脊髄・脳レベルも必要（部位は絞る）');
+    else lines.push('治療部位：末梢レベルで可（制限なし）');
+  }
+  if (hard === '硬い') lines.push('抗重力筋：交感神経関与のため浅めに刺鍼');
+
+  let phase;
+  if (pulseWeak) phase = '虚/疲労';
+  else if (tongueChanged) phase = '慢性/慢性化傾向';
+  else if (pulseNormal || tColor || tShape) phase = '急性';
+
+  // phase をカルテ欄に自動入力
+  const phaseEl = document.querySelector('[data-path="stimulus_decision.phase"]');
+  if (phaseEl && phase) phaseEl.value = phase;
+
+  box.hidden = false;
+  box.innerHTML = `<p class="obs-h">🧭 刺激量サジェスト（脈・舌・硬さより／臨床経験ベース）</p>
+    ${phase ? `<p>推定時期（phase）：<b>${phase}</b>${pulseWeak ? '（脈が弱い→急性/慢性に優先して弱刺激・浅め）' : ''}</p>` : ''}
+    <ul class="hit-list">${lines.map(l => `<li>${l}</li>`).join('')}</ul>
+    <p class="hint">エビデンスではなく臨床経験に基づく参考（原著明記）。Step3鑑別とは別格。</p>`;
 }
 
 // ---- フォーム値の入出力 ----
@@ -132,18 +192,20 @@ function applyData(data) {
 function saveForm() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(serializeForm())); } catch (e) {} }
 function restoreForm() { let d; try { d = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch (e) {} if (d) applyData(d); }
 
-// 生年月日 → 年齢
+// 生年月日（西暦/月/日セレクト）→ 年齢＋birth_date文字列
 function updateAge() {
-  const bd = document.querySelector('[data-path="profile.birth_date"]');
+  const v = dp => (document.querySelector(`[data-path="${dp}"]`) || {}).value || '';
   const ageEl = document.querySelector('[data-path="profile.age"]');
-  if (!bd || !ageEl) return;
-  if (!bd.value) { ageEl.value = ''; return; }
-  const b = new Date(bd.value);
-  if (isNaN(b)) { ageEl.value = ''; return; }
+  const bdEl = document.querySelector('[data-path="profile.birth_date"]');
+  const y = v('profile.birth_year'), m = v('profile.birth_month'), d = v('profile.birth_day');
+  if (bdEl) bdEl.value = y ? `${y}/${m || '?'}/${d || '?'}` : '';
+  if (!ageEl) return;
+  if (!y) { ageEl.value = ''; return; }
+  const by = Number(y), bm = Number(m || 1), bd = Number(d || 1);
   const now = new Date();
-  let age = now.getFullYear() - b.getFullYear();
-  const m = now.getMonth() - b.getMonth();
-  if (m < 0 || (m === 0 && now.getDate() < b.getDate())) age--;
+  let age = now.getFullYear() - by;
+  const mm = (now.getMonth() + 1) - bm;
+  if (mm < 0 || (mm === 0 && now.getDate() < bd)) age--;
   ageEl.value = age >= 0 ? age + '歳' : '';
 }
 
@@ -192,10 +254,12 @@ function buildControls() {
 
 async function init() {
   try {
-    const [karte, tcm] = await Promise.all([
+    const [karte, tcm, stim] = await Promise.all([
       fetch('data/karte_schema.json').then(r => r.json()),
-      fetch('data/tcm_findings.json').then(r => r.json())
+      fetch('data/tcm_findings.json').then(r => r.json()),
+      fetch('data/stimulus_modulation.json').then(r => r.json()).catch(() => null)
     ]);
+    STIM_MOD = stim;
 
     const order = Object.keys(karte).filter(k => !META.has(k) && typeof karte[k] === 'object');
     let html = buildControls();
@@ -214,9 +278,15 @@ async function init() {
     restoreForm();
     const filled = prefillFromEngine();
     updateAge();
+    updateStimulus();
 
-    // 自動保存（下書き）＋年齢再計算
-    const onChange = (e) => { if (e.target && e.target.dataset && e.target.dataset.path === 'profile.birth_date') updateAge(); saveForm(); };
+    // 自動保存（下書き）＋年齢/刺激サジェスト再計算
+    const onChange = (e) => {
+      const dp = e.target && e.target.dataset ? e.target.dataset.path : '';
+      if (dp && dp.startsWith('profile.birth_')) updateAge();
+      if (dp && dp.startsWith('tcm.')) updateStimulus();
+      saveForm();
+    };
     app().addEventListener('input', onChange);
     app().addEventListener('change', onChange);
 

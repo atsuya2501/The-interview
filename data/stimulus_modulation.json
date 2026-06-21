@@ -1,0 +1,68 @@
+{
+  "schema_name": "stimulus_modulation",
+  "version": "1.0",
+  "evidence_level": "clinical_experience",
+  "evidence_note": "著者の臨床経験に基づく。エビデンス・科学的根拠なしと原著明記。Step3疾患マスタ(LRベース=エビデンスあり)とは別格。混同しないこと。",
+  "description": "脈・舌・抗重力筋の所見(tcm_findings)から刺激方法・本数・刺激量・深さ・治療部位を決める参照テーブル。表c(p.215)準拠。",
+  "input_ref": {
+    "pulse": "tcm_findings.pulse.strength (浮沈・遅早 → 強い/正常/弱い)",
+    "tongue": "tcm_findings.tongue (色・形の変化の有無)",
+    "muscle_hardness": "tcm_findings.muscle_hardness (抗重力筋の硬さ)"
+  },
+  "modulation_table": {
+    "pulse": {
+      "label": "脈の状態(浮・沈/遅・早)",
+      "rules": [
+        {
+          "target": "刺激方法の決定",
+          "normal": ["鍼通電", "雀啄"],
+          "abnormal": ["置鍼", "鍉鍼", "接触鍼"],
+          "logic": "脈が強い(正常)→鍼通電・雀啄など強めの手技。脈が弱い(沈・遅=疲労)→置鍼・接触鍼など弱い刺激。"
+        },
+        {
+          "target": "本数の決定/刺激量",
+          "normal": "制限なし(脈が強ければ本数を増やせる)",
+          "abnormal": "少なめ",
+          "logic": "脈が弱い→刺激量も少なめ。"
+        },
+        {
+          "target": "深さの決定",
+          "normal": "制限なし",
+          "abnormal": "浅め",
+          "logic": "脈が弱い場合は浅めに刺鍼。交感神経に関係する抗重力筋も浅めに。"
+        }
+      ]
+    },
+    "tongue": {
+      "label": "舌の状態(色・形)",
+      "rules": [
+        {
+          "target": "治療部位の決定/痛みレベル示唆",
+          "no_change": "末梢レベルの治療で可。治療部位の制限なし。",
+          "change_present": "末梢レベルだけでなく脊髄・脳レベルの治療が必要。治療部位は少なめ(絞る)。",
+          "logic": "舌は急性期では変化しない。舌に変化あり=長期間痛みが存在 or 慢性化しやすい。色・形の変化→末梢だけでなく脊髄・脳レベル治療が必要。",
+          "level_link": "step5_pain_level と整合。舌変化ありは脳・脊髄レベルへの引き上げ示唆。"
+        }
+      ]
+    },
+    "muscle_hardness": {
+      "label": "抗重力筋の状態(硬い)",
+      "rules": [
+        {
+          "target": "刺激量/深さ",
+          "logic": "抗重力筋は交感神経に関係するため浅めに刺鍼。硬さは刺激量の参考。",
+          "depth": "浅め"
+        }
+      ]
+    }
+  },
+  "phase_derivation": {
+    "description": "脈・舌から痛みの時期(phase)を導き、track_to_mechanismのphase_depth(急性opioid↔慢性adenosine)に渡す。",
+    "rules": [
+      {"condition": "舌に変化なし＋脈正常", "phase": "急性", "stimulus": "浅い刺激(opioid_receptor寄り)、本数制限なし"},
+      {"condition": "舌に変化あり", "phase": "慢性/慢性化傾向", "stimulus": "深い刺激も可(adenosine_a1寄り)＋脊髄・脳レベル治療を追加"},
+      {"condition": "脈が弱い(沈・遅)", "phase": "虚/疲労", "stimulus": "弱刺激・少数・浅めを優先(phaseに関わらず上書き)"}
+    ],
+    "override_note": "脈が弱い場合は、急性/慢性の判定より優先して弱刺激・浅めにする(身体が疲れているため)。"
+  }
+}
