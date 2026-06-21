@@ -35,6 +35,14 @@ header h1 small { font-size: .7rem; font-weight: 500; opacity: .8; }
 .nav-link { font-size: .72rem; font-weight: 600; color: #fff; background: rgba(255,255,255,.18); padding: .2rem .6rem; border-radius: 999px; text-decoration: none; margin-left: .5rem; vertical-align: middle; }
 .nav-link:hover { background: rgba(255,255,255,.3); }
 
+/* intake wizard */
+.q-block { border-top: 1px solid var(--border); padding: .7rem 0; }
+.q-block:first-of-type { border-top: none; }
+.q-text { font-size: .92rem; font-weight: 600; margin-bottom: .4rem; }
+.opt-row { display: flex; gap: 1rem; align-items: center; }
+.opt-col { display: flex; flex-direction: column; gap: .35rem; }
+.dur { width: 6rem; border: 1px solid var(--border); border-radius: 8px; padding: .4rem .5rem; font: inherit; }
+
 /* karte form */
 .k-section { }
 .k-subsection { border-left: 2px solid var(--border); padding-left: .7rem; margin: .6rem 0; }
