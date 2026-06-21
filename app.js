@@ -762,6 +762,7 @@ function renderTreatment() {
     const top = suggestions[0];
     localStorage.setItem('karte_engine_output', JSON.stringify({
       region: (REGIONS[state.region] && REGIONS[state.region].label) || state.region,
+      region_key: state.region,
       branch: state.branch,
       confirmed_disease: top ? top.name : null,
       differential_candidates: suggestions.slice(1).map(s => s.name),

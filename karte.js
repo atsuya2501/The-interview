@@ -12,6 +12,7 @@ const META = new Set(['schema_name', 'version', 'description', 'shared_by', 'mas
 const STORAGE_KEY = 'karte_form_data';   // 作業中の下書き
 const RECORDS_KEY = 'karte_records';      // 保存済みカルテ群
 let STIM_MOD = null;                      // stimulus_modulation（刺激量サジェスト）
+let TRACK_MECH = null, TREATMENTS = null, ELECTRO = null; // 治療プラン自動提案用
 
 const LABELS = {
   profile: '基本情報', engine_output: '鑑別エンジン出力（自動入力）', checks: '確認項目',
@@ -252,14 +253,115 @@ function buildControls() {
   </section>`;
 }
 
+// ---- 治療プラン自動提案（resolver: track_to_mechanism + electrotherapy_params） ----
+function resolveTx(track, regionKey) {
+  if (!TRACK_MECH || !TREATMENTS || !track) return null;
+  const m = TRACK_MECH.mappings.find(x => x.track === track);
+  if (!m) return null;
+  if (m.treat === false || m.treat === 'redirect') return { info: m, txs: [] };
+  const sec = [...(m.secondary || [])];
+  if (m.ia_ib_conditional) {
+    const regs = (TRACK_MECH.ia_ib_resolution || {}).applies_to_regions || [];
+    if (regs.includes(regionKey)) sec.push('ia_ib_inhibition');
+  }
+  const primary = new Set(m.primary || []);
+  const seen = new Set();
+  const ids = [...(m.primary || []), ...sec].filter(id => !seen.has(id) && seen.add(id));
+  const txs = ids.map(id => TREATMENTS.find(t => t.id === id)).filter(Boolean);
+  return { info: m, txs, primary, reason: m.reason };
+}
+
+// 痛みタイプ → 下行性疼痛抑制の周波数バリアント選択（step5の回答から）
+function pickDescVariant(variants) {
+  const v = dp => (document.querySelector(`[data-path="${dp}"]`) || {}).value || '';
+  const weather = v('step5_pain_level.checks.weather_sensitivity') === 'はい';
+  const emotion = v('step5_pain_level.checks.emotion_sensitivity') === 'はい'
+    || v('step5_pain_level.checks.thought_related_change') === 'はい';
+  let receptor = 'μ';
+  if (weather) receptor = 'κ'; else if (emotion) receptor = 'δ';
+  return variants.find(x => x.receptor === receptor) || variants[0];
+}
+
+// 機序id → 鍼通電パラメータ文字列
+function esText(id) {
+  if (!ELECTRO) return '';
+  const ps = ELECTRO.mechanism_params.filter(p => p.mechanism_id === id);
+  if (!ps.length) return '';
+  return ps.map(p => {
+    if (p.frequency_variants) {
+      const v = pickDescVariant(p.frequency_variants);
+      return `${v.frequency_hz}・${p.intensity}・${v.time_min}分（${v.opioid || ''}/${v.receptor || ''}）`;
+    }
+    return `${p.frequency_hz}・${p.intensity}・${p.time_min}分${p.site ? '（' + p.site + '）' : ''}`;
+  }).join(' ／ ');
+}
+
+// 治療プラン欄に自動提案パネルを差し込み＋手技/道具チェックを補助
+function buildTreatmentSuggest() {
+  let data; try { data = JSON.parse(localStorage.getItem('karte_engine_output') || 'null'); } catch (e) {}
+  if (!data || !data.treatment_track) return;
+  const sec = [...app().querySelectorAll('.k-section')].find(s => (s.querySelector('h2') || {}).textContent === '治療プラン');
+  if (!sec) return;
+
+  const r = resolveTx(data.treatment_track, data.region_key);
+  const box = document.createElement('div');
+  box.className = 'obs-block';
+
+  if (!r || !r.txs.length) {
+    const reason = r && r.info ? r.info.reason : '';
+    box.innerHTML = `<p class="obs-h">🧭 治療プラン自動提案（${data.treatment_track}）</p>
+      <p class="hint">鍼の機序候補なし（${reason || '医療機関紹介/参照トラック'}）。</p>`;
+    sec.appendChild(box);
+    return;
+  }
+
+  const rows = r.txs.map(t => {
+    const es = esText(t.id);
+    const pri = r.primary.has(t.id) ? '<span class="tag primary-tag">第一選択</span> ' : '';
+    return `<div class="tx">
+      <div class="tx-head">${pri}${t.mechanism} <span class="tag">${t.category}</span> <span class="tag light">${t.level}</span></div>
+      <div class="tx-body">
+        <div><b>刺激部位</b> ${t.stimulus_site}</div>
+        <div><b>治療点</b> ${t.treatment_location}</div>
+        <div><b>手技</b> ${t.technique}</div>
+        <div><b>神経線維</b> ${t.nerve_fiber.join('・')}</div>
+        ${es ? `<div><b>鍼通電</b> ${es}</div>` : ''}
+      </div></div>`;
+  }).join('');
+
+  box.innerHTML = `<p class="obs-h">🧭 治療プラン自動提案（${data.treatment_track} → 機序）</p>
+    ${r.reason ? `<p class="resolver-reason">${r.reason}</p>` : ''}
+    ${rows}
+    <p class="hint">候補提示です。下の手技・道具欄に一部自動チェックしました（術者が最終選択）。</p>`;
+  sec.appendChild(box);
+
+  // 手技・道具チェックの補助（文字列一致）
+  const allTech = r.txs.map(t => t.technique).join(' ');
+  document.querySelectorAll('[data-path="specific_treatment.technique"]').forEach(cb => {
+    if (allTech.includes(cb.value)) cb.checked = true;
+  });
+  document.querySelectorAll('[data-path="treatment_plan.tools_used"]').forEach(cb => {
+    if (cb.value === '鍼') cb.checked = true;
+    else if (allTech.includes(cb.value)) cb.checked = true;
+    else if (cb.value === '鍼通電' && r.txs.some(t => esText(t.id))) cb.checked = true;
+  });
+  saveForm();
+}
+
 async function init() {
   try {
-    const [karte, tcm, stim] = await Promise.all([
+    const [karte, tcm, stim, tmech, tmaster, electro] = await Promise.all([
       fetch('data/karte_schema.json').then(r => r.json()),
       fetch('data/tcm_findings.json').then(r => r.json()),
-      fetch('data/stimulus_modulation.json').then(r => r.json()).catch(() => null)
+      fetch('data/stimulus_modulation.json').then(r => r.json()).catch(() => null),
+      fetch('data/track_to_mechanism.json').then(r => r.json()).catch(() => null),
+      fetch('data/treatment_master.json').then(r => r.json()).catch(() => null),
+      fetch('data/electrotherapy_params.json').then(r => r.json()).catch(() => null)
     ]);
     STIM_MOD = stim;
+    TRACK_MECH = tmech;
+    TREATMENTS = tmaster && tmaster[0] ? tmaster[0].treatments : null;
+    ELECTRO = electro;
 
     const order = Object.keys(karte).filter(k => !META.has(k) && typeof karte[k] === 'object');
     let html = buildControls();
@@ -279,6 +381,7 @@ async function init() {
     const filled = prefillFromEngine();
     updateAge();
     updateStimulus();
+    buildTreatmentSuggest();
 
     // 自動保存（下書き）＋年齢/刺激サジェスト再計算
     const onChange = (e) => {
