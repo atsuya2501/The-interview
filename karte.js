@@ -101,15 +101,50 @@ function renderTcm(tcm) {
   return `<section class="card k-section"><h2>東洋医学的所見（脈・舌・硬さ）</h2><p class="lead">刺激量・時期判定の参考。術者が記入。</p>${blocks}</section>`;
 }
 
-// エンジン結果を engine_output 欄に流し込む
+const STORAGE_KEY = 'karte_form_data';
+
+// 入力内容を localStorage に保存（全 data-path コントロール）
+function saveForm() {
+  const data = {};
+  app().querySelectorAll('[data-path]').forEach(el => {
+    const dp = el.dataset.path;
+    if (el.type === 'checkbox') {
+      if (el.checked) (data[dp] = data[dp] || []).push(el.value);
+    } else if (el.value) {
+      data[dp] = el.value;
+    }
+  });
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch (e) { /* 保存不可でも継続 */ }
+}
+
+// localStorage から入力内容を復元
+function restoreForm() {
+  let data;
+  try { data = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch (e) { data = null; }
+  if (!data) return;
+  Object.keys(data).forEach(dp => {
+    const val = data[dp];
+    app().querySelectorAll(`[data-path="${dp}"]`).forEach(el => {
+      if (el.type === 'checkbox') {
+        if (Array.isArray(val) && val.includes(el.value)) el.checked = true;
+      } else {
+        el.value = val;
+      }
+    });
+  });
+}
+
+// エンジン結果を engine_output 欄に流し込む（engine_outputは常に最新で上書き、診断名は空の時のみ）
 function prefillFromEngine() {
   let data;
   try { data = JSON.parse(localStorage.getItem('karte_engine_output') || 'null'); } catch (e) { data = null; }
   if (!data) return null;
-  const set = (dp, v) => {
+  const set = (dp, v, onlyIfEmpty) => {
     if (v == null || v === '') return;
     const el = document.querySelector(`[data-path="${dp}"]`);
-    if (el) el.value = Array.isArray(v) ? v.join(' / ') : v;
+    if (!el) return;
+    if (onlyIfEmpty && el.value) return;
+    el.value = Array.isArray(v) ? v.join(' / ') : v;
   };
   const base = 'step3_disease.engine_output';
   set(`${base}.region`, data.region);
@@ -118,7 +153,7 @@ function prefillFromEngine() {
   set(`${base}.differential_candidates`, data.differential_candidates);
   set(`${base}.cause_tissue`, data.cause_tissue);
   set(`${base}.treatment_track`, data.treatment_track);
-  set('profile.diagnosis_name', data.confirmed_disease);
+  set('profile.diagnosis_name', data.confirmed_disease, true);
   return data;
 }
 
@@ -137,11 +172,23 @@ async function init() {
     }
     html += `<div class="actions">
       <button class="btn" onclick="window.print()">🖨 印刷</button>
+      <button class="btn" id="k-clear">🗑 入力をクリア</button>
       <a class="btn" href="index.html">← 鑑別へ戻る</a>
     </div>`;
     app().innerHTML = html;
 
-    const filled = prefillFromEngine();
+    restoreForm();                 // 保存済み入力を復元
+    const filled = prefillFromEngine(); // 鑑別エンジン出力を流し込み（最新優先）
+
+    // 自動保存（入力のたびに保存）
+    app().addEventListener('input', saveForm);
+    app().addEventListener('change', saveForm);
+
+    document.getElementById('k-clear').addEventListener('click', () => {
+      if (!confirm('カルテの入力内容をすべて消去しますか？（鑑別結果は残ります）')) return;
+      try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+      location.reload();
+    });
     if (filled) {
       const banner = document.createElement('div');
       banner.className = 'card';

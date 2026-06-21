@@ -1,4 +1,4 @@
-const CACHE = 'itami-kanbe-v21';
+const CACHE = 'itami-kanbe-v22';
 const ASSETS = [
   '/',
   '/index.html',
