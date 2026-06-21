@@ -1,9 +1,11 @@
-const CACHE = 'itami-kanbe-v19';
+const CACHE = 'itami-kanbe-v20';
 const ASSETS = [
   '/',
   '/index.html',
   '/style.css',
   '/app.js',
+  '/karte.html',
+  '/karte.js',
   '/data/neck_diseases.json',
   '/data/head_diseases.json',
   '/data/lumbar_diseases.json',

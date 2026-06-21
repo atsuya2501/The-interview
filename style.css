@@ -32,6 +32,22 @@ body {
 header { background: var(--primary); color: #fff; padding: .9rem 1.25rem .5rem; position: sticky; top: 0; z-index: 10; }
 header h1 { font-size: 1.15rem; font-weight: 700; display: flex; align-items: baseline; gap: .5rem; }
 header h1 small { font-size: .7rem; font-weight: 500; opacity: .8; }
+.nav-link { font-size: .72rem; font-weight: 600; color: #fff; background: rgba(255,255,255,.18); padding: .2rem .6rem; border-radius: 999px; text-decoration: none; margin-left: .5rem; vertical-align: middle; }
+.nav-link:hover { background: rgba(255,255,255,.3); }
+
+/* karte form */
+.k-section { }
+.k-subsection { border-left: 2px solid var(--border); padding-left: .7rem; margin: .6rem 0; }
+.k-subsection h3 { font-size: .9rem; margin: .3rem 0; }
+.k-field { display: flex; flex-direction: column; gap: .2rem; margin: .5rem 0; }
+.k-label { font-size: .8rem; font-weight: 600; color: var(--primary); }
+.k-field input[type="text"], .k-field select, .k-field textarea { border: 1px solid var(--border); border-radius: 8px; padding: .45rem .55rem; font: inherit; font-size: .88rem; width: 100%; background: #fff; }
+.k-checks { display: flex; flex-wrap: wrap; gap: .4rem .9rem; }
+.k-check { font-size: .82rem; display: flex; align-items: center; gap: .3rem; }
+@media print {
+  header, footer, .actions, .nav-link { display: none !important; }
+  .card { box-shadow: none; border: 1px solid #ccc; break-inside: avoid; }
+}
 .progress { height: 4px; background: rgba(255,255,255,.2); border-radius: 4px; margin-top: .6rem; overflow: hidden; }
 .progress-fill { height: 100%; background: #6db3ff; transition: width .3s ease; }
 
