@@ -1,63 +1,73 @@
 /* =====================================================================
    カルテ様式シェル
-   karte_schema.json / tcm_findings.json からフォームを自動生成する。
-   ロジックは持たず「形だけ」（脈・舌などは術者が記入）。
-   鑑別エンジンの結果（localStorage: karte_engine_output）を engine_output 欄に自動流し込み。
+   karte_schema.json / tcm_findings.json からフォームを自動生成。
+   ・日本語ラベル
+   ・鑑別エンジン出力(localStorage: karte_engine_output)を engine_output 欄へ自動流し込み
+   ・入力の自動保存(下書き) + 複数カルテの保存／呼び出し
+   ・性別=男/女、生年月日(日付)→年齢を自動算出
    ===================================================================== */
 
 const app = () => document.getElementById('karte');
 const META = new Set(['schema_name', 'version', 'description', 'shared_by', 'master_type', 'fallback', 'architecture_note', 'severity_policy', 'level_handling']);
+const STORAGE_KEY = 'karte_form_data';   // 作業中の下書き
+const RECORDS_KEY = 'karte_records';      // 保存済みカルテ群
 
-// 日本語ラベル辞書（無いキーは prettify でフォールバック）
 const LABELS = {
-  // セクション
   profile: '基本情報', engine_output: '鑑別エンジン出力（自動入力）', checks: '確認項目',
   exam_physical: '徒手検査（錐体路・錐体外路）', exam_spinal: '脊髄系の診察', exam_bone: '骨の診察',
   exam_joint: '関節の診察', exam_muscle: '筋の診察', exam_psych: '精神面', notes: '備考',
   pulse: '脈', tongue: '舌', muscle_hardness: '硬さ（抗重力筋）',
-  // profile
   karte_no: 'カルテNo', name: '氏名', birth_date: '生年月日', age: '年齢', sex: '性別',
   disease_duration_years: '罹患期間（年）', chief_complaint: '主訴', diagnosis_name: '診断名',
-  // step1/2
   pain_duration: '痛みの持続期間', classification: '急性/慢性', pain_quality: '痛みの性質',
   pain_range: '痛みの範囲', relief_factor: '軽快因子', aggravation_factor: '増悪因子',
   predicted_tissue: '予想される組織',
-  // step3 exams
   balre_sign: 'バレー徴候', pronation_supination: '回内・回外運動', pathological_reflex: '病的反射',
   reflex: '腱反射', muscle_strength: '筋力', sensory: '感覚', percussion_pain: '叩打痛',
   heat: '熱感', swelling: '腫脹', redness: '発赤', rom_test: 'ROMテスト', tenderness: '圧痛',
   interest_loss: '興味・関心の低下', pain_location_and_state: '部位と痛みの性状',
   region: '部位', branch: '分類', confirmed_disease: '示唆疾患', differential_candidates: '鑑別候補',
   cause_tissue: '原因組織', treatment_track: '治療トラック',
-  // step4
   present: 'レッドフラッグ', content: '内容', severe_pain: '激しい痛み', motor_disturbance: '運動障害',
   autonomic_reaction: '自律神経反応', widespread_pain: '全身/半身の痛み', progressive_48h: '48時間以上で悪化',
   bladder_bowel_dysfunction: '膀胱直腸障害',
-  // step5
   level: '痛みのレベル', pain_distribution: '痛みの分布', cold_symptoms: '冷え',
   postural_change_muscle_tension: '姿勢変化・筋緊張', diarrhea_constipation: '下痢・便秘',
   dry_mouth_eye: 'ドライマウス/アイ', weather_sensitivity: '天気で変化', emotion_sensitivity: '感情で変化',
   thought_related_change: '思考に関連して変化', sleep_disturbance: '睡眠障害',
-  // step6
   rest_until_cured: '治るまで休むべきと考える', limiting_activities: 'やりたいことを制限',
   rest_is_best: '安静が一番と考える', movement_worsens: '動くと悪化すると思う',
   past_work_absence: '痛みで休職した経験', constant_anxiety_tension: '常に不安・緊張',
   constant_depression: '常に憂うつ', heavy_or_monotonous_work: '重労働・単純作業', result: '結果',
-  // step7 / stimulus / tcm
   short_term: '短期目標', long_term: '長期目標', final: '最終目標', phase: '時期',
   strength: '脈の強さ', color: '舌の色', shape: '舌の形', value: '硬さ',
-  // treatment
   treatment_location: '治療部位', tools_used: '使用する道具', mechanism: '機序',
   technique: '手技', needle_size: '鍼の太さ', treatment_time: '治療時間', other_options: 'その他',
   special_notes: '特記事項', past_history: '既往歴', family_history: '家族歴', medication: '服薬'
 };
 
+// パス単位のフィールド型上書き
+const FIELD_OVERRIDES = {
+  'profile.sex': { type: 'select', options: ['男', '女'] },
+  'profile.birth_date': { type: 'date' },
+  'profile.age': { type: 'readonly' }
+};
+
 function labelFor(key) { return LABELS[key] || key.replace(/_/g, ' '); }
 
-// 値ノードをフィールドHTMLに変換（data-path で後から流し込み可能に）
 function renderField(path, key, val, enumArr) {
   const dp = `${path}.${key}`;
   const label = labelFor(key);
+  const ov = FIELD_OVERRIDES[dp];
+
+  if (ov) {
+    if (ov.type === 'date') return `<div class="k-field"><span class="k-label">${label}</span><input type="date" data-path="${dp}"></div>`;
+    if (ov.type === 'readonly') return `<div class="k-field"><span class="k-label">${label}</span><input type="text" data-path="${dp}" readonly placeholder="生年月日から自動計算"></div>`;
+    if (ov.type === 'select') {
+      const opts = ['<option value=""></option>'].concat(ov.options.map(o => `<option>${o}</option>`)).join('');
+      return `<div class="k-field"><span class="k-label">${label}</span><select data-path="${dp}">${opts}</select></div>`;
+    }
+  }
 
   if (Array.isArray(val)) {
     if (enumArr && enumArr.length) {
@@ -74,21 +84,16 @@ function renderField(path, key, val, enumArr) {
   return `<div class="k-field"><span class="k-label">${label}</span><input type="text" data-path="${dp}" placeholder=""></div>`;
 }
 
-// セクション（オブジェクト）を再帰描画
 function renderSection(name, obj, depth, prefix) {
   const path = prefix ? `${prefix}.${name}` : name;
   const title = obj.label || labelFor(name);
   const fieldKeys = Object.keys(obj).filter(k => !k.startsWith('_') && k !== 'label');
-
   const body = fieldKeys.map(fk => {
     const val = obj[fk];
     const enumArr = obj['_enum_' + fk];
-    if (val && typeof val === 'object' && !Array.isArray(val)) {
-      return renderSection(fk, val, depth + 1, path);
-    }
+    if (val && typeof val === 'object' && !Array.isArray(val)) return renderSection(fk, val, depth + 1, path);
     return renderField(path, fk, val, enumArr);
   }).join('');
-
   const tag = depth === 0 ? 'section' : 'div';
   const cls = depth === 0 ? 'card k-section' : 'k-subsection';
   const ht = depth === 0 ? 'h2' : 'h3';
@@ -101,49 +106,55 @@ function renderTcm(tcm) {
   return `<section class="card k-section"><h2>東洋医学的所見（脈・舌・硬さ）</h2><p class="lead">刺激量・時期判定の参考。術者が記入。</p>${blocks}</section>`;
 }
 
-const STORAGE_KEY = 'karte_form_data';
-
-// 入力内容を localStorage に保存（全 data-path コントロール）
-function saveForm() {
+// ---- フォーム値の入出力 ----
+function serializeForm() {
   const data = {};
   app().querySelectorAll('[data-path]').forEach(el => {
     const dp = el.dataset.path;
-    if (el.type === 'checkbox') {
-      if (el.checked) (data[dp] = data[dp] || []).push(el.value);
-    } else if (el.value) {
-      data[dp] = el.value;
-    }
+    if (el.type === 'checkbox') { if (el.checked) (data[dp] = data[dp] || []).push(el.value); }
+    else if (el.value) data[dp] = el.value;
   });
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch (e) { /* 保存不可でも継続 */ }
+  return data;
 }
-
-// localStorage から入力内容を復元
-function restoreForm() {
-  let data;
-  try { data = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch (e) { data = null; }
-  if (!data) return;
-  Object.keys(data).forEach(dp => {
-    const val = data[dp];
-    app().querySelectorAll(`[data-path="${dp}"]`).forEach(el => {
-      if (el.type === 'checkbox') {
-        if (Array.isArray(val) && val.includes(el.value)) el.checked = true;
-      } else {
-        el.value = val;
-      }
+function applyData(data) {
+  app().querySelectorAll('[data-path]').forEach(el => { if (el.type === 'checkbox') el.checked = false; else el.value = ''; });
+  if (data) {
+    Object.keys(data).forEach(dp => {
+      const val = data[dp];
+      app().querySelectorAll(`[data-path="${dp}"]`).forEach(el => {
+        if (el.type === 'checkbox') { if (Array.isArray(val) && val.includes(el.value)) el.checked = true; }
+        else el.value = val;
+      });
     });
-  });
+  }
+  updateAge();
+}
+function saveForm() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(serializeForm())); } catch (e) {} }
+function restoreForm() { let d; try { d = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch (e) {} if (d) applyData(d); }
+
+// 生年月日 → 年齢
+function updateAge() {
+  const bd = document.querySelector('[data-path="profile.birth_date"]');
+  const ageEl = document.querySelector('[data-path="profile.age"]');
+  if (!bd || !ageEl) return;
+  if (!bd.value) { ageEl.value = ''; return; }
+  const b = new Date(bd.value);
+  if (isNaN(b)) { ageEl.value = ''; return; }
+  const now = new Date();
+  let age = now.getFullYear() - b.getFullYear();
+  const m = now.getMonth() - b.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < b.getDate())) age--;
+  ageEl.value = age >= 0 ? age + '歳' : '';
 }
 
-// エンジン結果を engine_output 欄に流し込む（engine_outputは常に最新で上書き、診断名は空の時のみ）
+// 鑑別エンジン出力を流し込み
 function prefillFromEngine() {
-  let data;
-  try { data = JSON.parse(localStorage.getItem('karte_engine_output') || 'null'); } catch (e) { data = null; }
+  let data; try { data = JSON.parse(localStorage.getItem('karte_engine_output') || 'null'); } catch (e) {}
   if (!data) return null;
   const set = (dp, v, onlyIfEmpty) => {
     if (v == null || v === '') return;
     const el = document.querySelector(`[data-path="${dp}"]`);
-    if (!el) return;
-    if (onlyIfEmpty && el.value) return;
+    if (!el || (onlyIfEmpty && el.value)) return;
     el.value = Array.isArray(v) ? v.join(' / ') : v;
   };
   const base = 'step3_disease.engine_output';
@@ -157,6 +168,28 @@ function prefillFromEngine() {
   return data;
 }
 
+// ---- 複数カルテの保存／呼び出し ----
+function loadRecords() { try { return JSON.parse(localStorage.getItem(RECORDS_KEY) || '{}'); } catch (e) { return {}; } }
+function storeRecords(r) { try { localStorage.setItem(RECORDS_KEY, JSON.stringify(r)); } catch (e) {} }
+function refreshRecordList() {
+  const sel = document.getElementById('rec-list');
+  if (!sel) return;
+  const recs = loadRecords();
+  const ids = Object.keys(recs).sort((a, b) => Number(b) - Number(a));
+  sel.innerHTML = ['<option value="">— 保存済みカルテを選択 —</option>']
+    .concat(ids.map(id => `<option value="${id}">${recs[id].name}（${recs[id].at}）</option>`)).join('');
+}
+
+function buildControls() {
+  return `<section class="card">
+    <h2>カルテ保存 / 呼び出し</h2>
+    <div class="k-field"><span class="k-label">保存名</span><input id="rec-name" type="text" placeholder="氏名・日付など（空なら自動）"></div>
+    <div class="actions" style="margin-top:.4rem"><button class="btn primary" id="rec-save">💾 現在の内容を保存</button></div>
+    <div class="k-field" style="margin-top:.6rem"><span class="k-label">保存済みカルテ</span><select id="rec-list"></select></div>
+    <div class="actions"><button class="btn" id="rec-load">📂 呼び出し</button><button class="btn" id="rec-del">🗑 選択を削除</button></div>
+  </section>`;
+}
+
 async function init() {
   try {
     const [karte, tcm] = await Promise.all([
@@ -165,7 +198,7 @@ async function init() {
     ]);
 
     const order = Object.keys(karte).filter(k => !META.has(k) && typeof karte[k] === 'object');
-    let html = '';
+    let html = buildControls();
     for (const k of order) {
       html += renderSection(k, karte[k], 0, '');
       if (k === 'stimulus_decision') html += renderTcm(tcm);
@@ -177,22 +210,61 @@ async function init() {
     </div>`;
     app().innerHTML = html;
 
-    restoreForm();                 // 保存済み入力を復元
-    const filled = prefillFromEngine(); // 鑑別エンジン出力を流し込み（最新優先）
+    refreshRecordList();
+    restoreForm();
+    const filled = prefillFromEngine();
+    updateAge();
 
-    // 自動保存（入力のたびに保存）
-    app().addEventListener('input', saveForm);
-    app().addEventListener('change', saveForm);
+    // 自動保存（下書き）＋年齢再計算
+    const onChange = (e) => { if (e.target && e.target.dataset && e.target.dataset.path === 'profile.birth_date') updateAge(); saveForm(); };
+    app().addEventListener('input', onChange);
+    app().addEventListener('change', onChange);
 
+    // 保存
+    document.getElementById('rec-save').addEventListener('click', () => {
+      const recs = loadRecords();
+      const id = Date.now().toString();
+      const nameInput = document.getElementById('rec-name').value.trim();
+      const profName = (document.querySelector('[data-path="profile.name"]') || {}).value || '';
+      const name = nameInput || profName || ('カルテ' + (Object.keys(recs).length + 1));
+      recs[id] = { name, at: new Date().toLocaleString('ja-JP'), data: serializeForm() };
+      storeRecords(recs);
+      refreshRecordList();
+      document.getElementById('rec-list').value = id;
+      alert(`「${name}」を保存しました。`);
+    });
+    // 呼び出し
+    document.getElementById('rec-load').addEventListener('click', () => {
+      const id = document.getElementById('rec-list').value;
+      if (!id) { alert('呼び出すカルテを選択してください。'); return; }
+      const recs = loadRecords();
+      if (!recs[id]) return;
+      applyData(recs[id].data);
+      saveForm();
+      alert(`「${recs[id].name}」を呼び出しました。`);
+    });
+    // 削除
+    document.getElementById('rec-del').addEventListener('click', () => {
+      const id = document.getElementById('rec-list').value;
+      if (!id) { alert('削除するカルテを選択してください。'); return; }
+      const recs = loadRecords();
+      if (!recs[id]) return;
+      if (!confirm(`「${recs[id].name}」を削除しますか？`)) return;
+      delete recs[id];
+      storeRecords(recs);
+      refreshRecordList();
+    });
+    // 下書きクリア
     document.getElementById('k-clear').addEventListener('click', () => {
-      if (!confirm('カルテの入力内容をすべて消去しますか？（鑑別結果は残ります）')) return;
+      if (!confirm('現在の入力内容をクリアしますか？（保存済みカルテは残ります）')) return;
       try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
       location.reload();
     });
+
     if (filled) {
       const banner = document.createElement('div');
       banner.className = 'card';
-      banner.innerHTML = `<p class="lead">🗂 直近の鑑別結果（${filled.saved_at || ''}）を「鑑別エンジン出力」「診断名」に自動入力しました。必要に応じて修正してください。</p>`;
+      banner.innerHTML = `<p class="lead">🗂 直近の鑑別結果（${filled.saved_at || ''}）を「鑑別エンジン出力」「診断名」に自動入力しました。</p>`;
       app().prepend(banner);
     }
   } catch (e) {
