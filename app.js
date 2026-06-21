@@ -757,6 +757,20 @@ function renderTreatment() {
   const isDanger = d => d.prevalence === 'rare_redflag' || d._track === '要医療機関';
   const suggestions = state.scored.filter(s => s.total > 0 || isDanger(s.disease));
 
+  // カルテへ engine_output を保存（カルテ画面が読み込んで自動流し込み）
+  try {
+    const top = suggestions[0];
+    localStorage.setItem('karte_engine_output', JSON.stringify({
+      region: (REGIONS[state.region] && REGIONS[state.region].label) || state.region,
+      branch: state.branch,
+      confirmed_disease: top ? top.name : null,
+      differential_candidates: suggestions.slice(1).map(s => s.name),
+      treatment_track: top ? top.disease.treatment_track : null,
+      cause_tissue: null,
+      saved_at: new Date().toLocaleString('ja-JP')
+    }));
+  } catch (e) { /* localStorage不可でも鑑別表示は継続 */ }
+
   // Step⑤の高位
   let levelHtml = '';
   if (needLevel() && Object.keys(state.levelAnswers).some(k => state.levelAnswers[k])) {
