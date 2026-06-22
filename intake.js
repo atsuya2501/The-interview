@@ -7,7 +7,32 @@
 
 const app = () => document.getElementById('intake');
 const FORM_KEY = 'karte_form_data';
+const INTAKE_KEY = 'intake_answers';
 let FLOW = null, KARTE = null;
+
+// 問診の回答を保存／復元（再開できるように）
+function saveIntake() {
+  const a = {};
+  app().querySelectorAll('input').forEach(el => {
+    if (el.type === 'radio') { if (el.checked) a[el.name] = el.value; }
+    else if (el.type === 'checkbox') { if (el.checked) (a[el.name] = a[el.name] || []).push(el.value); }
+    else if (el.type === 'number') { if (el.value) a[el.id] = el.value; }
+  });
+  try { localStorage.setItem(INTAKE_KEY, JSON.stringify(a)); } catch (e) {}
+}
+function restoreIntake() {
+  let a; try { a = JSON.parse(localStorage.getItem(INTAKE_KEY) || 'null'); } catch (e) {}
+  if (!a) return;
+  Object.keys(a).forEach(k => {
+    const v = a[k];
+    const numEl = document.getElementById(k);
+    if (numEl && numEl.type === 'number') { numEl.value = v; return; }
+    app().querySelectorAll(`[name="${k}"]`).forEach(el => {
+      if (el.type === 'radio') el.checked = (el.value === v);
+      else if (el.type === 'checkbox') { if (Array.isArray(v) && v.includes(el.value)) el.checked = true; }
+    });
+  });
+}
 
 // karte の _enum_ から、answer が前方一致する正式値を返す（無ければ answer のまま）
 function enumMatch(sectionObj, fieldKey, answer) {
@@ -157,6 +182,10 @@ async function init() {
       <a class="btn" href="karte.html">🗂 カルテを開く</a>
     </div>`;
     app().innerHTML = html;
+
+    restoreIntake();
+    app().addEventListener('input', saveIntake);
+    app().addEventListener('change', saveIntake);
 
     document.getElementById('apply').addEventListener('click', () => {
       const out = deriveAndWrite();

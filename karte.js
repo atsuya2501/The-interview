@@ -250,6 +250,11 @@ function buildControls() {
     <div class="actions" style="margin-top:.4rem"><button class="btn primary" id="rec-save">💾 現在の内容を保存</button></div>
     <div class="k-field" style="margin-top:.6rem"><span class="k-label">保存済みカルテ</span><select id="rec-list"></select></div>
     <div class="actions"><button class="btn" id="rec-load">📂 呼び出し</button><button class="btn" id="rec-del">🗑 選択を削除</button></div>
+    <div class="actions" style="margin-top:.4rem">
+      <button class="btn" id="rec-export">⬇ 書き出し(JSON)</button>
+      <button class="btn" id="rec-import">⬆ 読み込み(JSON)</button>
+      <input type="file" id="rec-file" accept="application/json,.json" hidden>
+    </div>
   </section>`;
 }
 
@@ -427,6 +432,34 @@ async function init() {
       storeRecords(recs);
       refreshRecordList();
     });
+    // 書き出し（現在の下書き＋保存済み全件＋直近エンジン出力をJSONで保存）
+    document.getElementById('rec-export').addEventListener('click', () => {
+      let eng = null; try { eng = JSON.parse(localStorage.getItem('karte_engine_output') || 'null'); } catch (e) {}
+      const bundle = { schema: 'karte_export', version: 1, exported_at: new Date().toISOString(), form: serializeForm(), records: loadRecords(), engine_output: eng };
+      const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `karte_${new Date().toISOString().slice(0, 10)}.json`;
+      a.click(); URL.revokeObjectURL(url);
+    });
+    // 読み込み
+    document.getElementById('rec-import').addEventListener('click', () => document.getElementById('rec-file').click());
+    document.getElementById('rec-file').addEventListener('change', (e) => {
+      const file = e.target.files[0]; if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const b = JSON.parse(reader.result);
+          if (b.records) { const cur = loadRecords(); storeRecords(Object.assign(cur, b.records)); refreshRecordList(); }
+          if (b.engine_output) localStorage.setItem('karte_engine_output', JSON.stringify(b.engine_output));
+          if (b.form) { applyData(b.form); saveForm(); }
+          alert('読み込みました（保存済みカルテはマージ）。');
+        } catch (err) { alert('読み込みに失敗しました：' + err.message); }
+        e.target.value = '';
+      };
+      reader.readAsText(file);
+    });
+
     // 下書きクリア
     document.getElementById('k-clear').addEventListener('click', () => {
       if (!confirm('現在の入力内容をクリアしますか？（保存済みカルテは残ります）')) return;
