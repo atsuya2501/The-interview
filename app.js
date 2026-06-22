@@ -765,6 +765,7 @@ function renderTreatment() {
       region_key: state.region,
       branch: state.branch,
       confirmed_disease: top ? top.name : null,
+      confirmed_disease_id: top ? top.id : null,
       differential_candidates: suggestions.slice(1).map(s => s.name),
       treatment_track: top ? top.disease.treatment_track : null,
       cause_tissue: null,

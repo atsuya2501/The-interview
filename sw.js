@@ -1,4 +1,4 @@
-const CACHE = 'itami-kanbe-v27';
+const CACHE = 'itami-kanbe-v28';
 const ASSETS = [
   '/',
   '/index.html',
@@ -29,6 +29,7 @@ const ASSETS = [
   '/data/track_to_mechanism.json',
   '/data/stimulus_modulation.json',
   '/data/electrotherapy_params.json',
+  '/data/patient_scripts.json',
   '/data/treatment_master.json',
   '/data/test_methods.json',
   '/data/dermatome_map.json',
