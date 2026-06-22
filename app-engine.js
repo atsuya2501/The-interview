@@ -320,6 +320,11 @@ function renderTreatment() {
       branch: state.branch,
       confirmed_disease: top ? top.name : null,
       confirmed_disease_id: top ? top.id : null,
+      positive_findings: (() => {
+        const map = {}; buildFindingItems().forEach(it => { map[it.key] = it.sign; });
+        return Object.keys(state.findingAnswers)
+          .filter(k => state.findingAnswers[k] === 'pos').map(k => map[k]).filter(Boolean);
+      })(),
       differential_candidates: suggestions.slice(1).map(s => s.name),
       treatment_track: top ? top.disease.treatment_track : null,
       cause_tissue: null,

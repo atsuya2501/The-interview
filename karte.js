@@ -233,6 +233,11 @@ function prefillFromEngine() {
   set(`${base}.cause_tissue`, data.cause_tissue);
   set(`${base}.treatment_track`, data.treatment_track);
   set('profile.diagnosis_name', data.confirmed_disease, true);
+  // 鑑別の陽性所見を「部位と痛みの性状」へ転記（空のときのみ）
+  if (data.positive_findings && data.positive_findings.length) {
+    set('step3_disease.pain_location_and_state',
+      `${data.region || ''}（${data.branch || ''}）｜陽性所見：${data.positive_findings.join('、')}`, true);
+  }
   return data;
 }
 
@@ -263,11 +268,24 @@ function buildControls() {
   </section>`;
 }
 
+// 正準トラック→治療マスタ（鑑別エンジン側 TRACK_MAP と同等。記述的トラックが無い既存14部位用フォールバック）
+const KARTE_TRACK_MAP = {
+  '局所筋骨格': t => t.level === '末梢',
+  '神経系': t => t.level === '末梢' || t.level === '脊髄' || t.id === 'descending_inhibition',
+  '心理社会的': t => t.level === '脳',
+  '自律神経': t => t.id === 'somato_autonomic_reflex' || t.id === 'autonomic_regulation' || t.id === 'descending_inhibition'
+};
+
 // ---- 治療プラン自動提案（resolver: track_to_mechanism + electrotherapy_params） ----
 function resolveTx(track, regionKey) {
   if (!TRACK_MECH || !TREATMENTS || !track) return null;
   const m = TRACK_MECH.mappings.find(x => x.track === track);
-  if (!m) return null;
+  if (!m) {
+    // 記述的トラックに無い＝正準トラック。TRACK_MAP相当でフォールバック
+    const rule = KARTE_TRACK_MAP[track];
+    if (!rule) return null;
+    return { txs: TREATMENTS.filter(rule), primary: new Set(), reason: '' };
+  }
   if (m.treat === false || m.treat === 'redirect') return { info: m, txs: [] };
   const sec = [...(m.secondary || [])];
   if (m.ia_ib_conditional) {
@@ -355,6 +373,14 @@ function buildTreatmentSuggest() {
     else if (allTech.includes(cb.value)) cb.checked = true;
     else if (cb.value === '鍼通電' && r.txs.some(t => esText(t.id))) cb.checked = true;
   });
+
+  // 治療部位（局所/遠隔）を第一選択機序の stimulus_site から自動選択（空のときのみ）
+  const locEl = document.querySelector('[data-path="treatment_plan.treatment_location"]');
+  if (locEl && !locEl.value && r.txs[0]) {
+    const SITE_MAP = { '痛みがあるところ': '局所', '遠隔部・同一分節': '遠隔(分節)', '遠隔部・異分節': '遠隔(四肢)' };
+    const loc = SITE_MAP[r.txs[0].stimulus_site];
+    if (loc && [...locEl.options].some(o => o.value === loc)) locEl.value = loc;
+  }
 
   // 機序欄（治療プラン）に、確定疾患(1位)で使う機序を自動チェック
   if (MECH_ENUM) {
