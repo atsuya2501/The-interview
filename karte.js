@@ -14,6 +14,7 @@ const RECORDS_KEY = 'karte_records';      // 保存済みカルテ群
 let STIM_MOD = null;                      // stimulus_modulation（刺激量サジェスト）
 let TRACK_MECH = null, TREATMENTS = null, ELECTRO = null; // 治療プラン自動提案用
 let PATIENT_SCRIPTS = null; // 患者向け説明スクリプト
+let MECH_ENUM = null;        // カルテ機序欄の選択肢（_enum_mechanism）
 
 const LABELS = {
   profile: '基本情報', engine_output: '鑑別エンジン出力（自動入力）', checks: '確認項目',
@@ -123,7 +124,10 @@ function renderSection(name, obj, depth, prefix) {
 function renderTcm(tcm) {
   const blocks = ['pulse', 'tongue', 'muscle_hardness']
     .filter(k => tcm[k]).map(k => renderSection(k, tcm[k], 1, 'tcm')).join('');
-  return `<section class="card k-section"><h2>東洋医学的所見（脈・舌・硬さ）</h2><p class="lead">刺激量・時期判定の参考。術者が記入。</p>${blocks}
+  const phaseField = `<div class="k-field"><span class="k-label">時期（phase）</span>
+    <input type="text" data-path="stimulus_decision.phase" placeholder="脈・舌から自動推定"></div>`;
+  return `<section class="card k-section"><h2>東洋医学的所見（刺激量の決定）</h2>
+    <p class="lead">脈・舌・抗重力筋の硬さ → 時期(phase)と刺激量の参考。術者が記入。</p>${blocks}${phaseField}
     <div id="stim-suggest" class="obs-block" hidden></div></section>`;
 }
 
@@ -351,6 +355,20 @@ function buildTreatmentSuggest() {
     else if (allTech.includes(cb.value)) cb.checked = true;
     else if (cb.value === '鍼通電' && r.txs.some(t => esText(t.id))) cb.checked = true;
   });
+
+  // 機序欄（治療プラン）に、確定疾患(1位)で使う機序を自動チェック
+  if (MECH_ENUM) {
+    // treatment_master の機序id → カルテ機序選択肢のindex
+    const MAP = {
+      opioid_receptor: 0, adenosine_a1: 0, gate_control_local: 1, gate_control_segment: 1,
+      descending_inhibition: 2, ia_ib_inhibition: 3, somato_autonomic_reflex: 4,
+      autonomic_regulation: 4, blood_flow: 5, keratinocyte_immune: 6, neurotransmitter: 7
+    };
+    const wanted = new Set(r.txs.map(t => MECH_ENUM[MAP[t.id]]).filter(Boolean));
+    document.querySelectorAll('[data-path="treatment_plan.mechanism"]').forEach(cb => {
+      if (wanted.has(cb.value)) cb.checked = true;
+    });
+  }
   saveForm();
 }
 
@@ -414,12 +432,14 @@ async function init() {
     TREATMENTS = tmaster && tmaster[0] ? tmaster[0].treatments : null;
     ELECTRO = electro;
     PATIENT_SCRIPTS = pscripts;
+    MECH_ENUM = (karte.treatment_plan && karte.treatment_plan._enum_mechanism) || null;
 
     const order = Object.keys(karte).filter(k => !META.has(k) && typeof karte[k] === 'object');
     let html = buildControls();
     for (const k of order) {
+      // 「刺激量の決定」は東洋医学的所見に統合（脈・舌・硬さ＋phase＋サジェスト）
+      if (k === 'stimulus_decision') { html += renderTcm(tcm); continue; }
       html += renderSection(k, karte[k], 0, '');
-      if (k === 'stimulus_decision') html += renderTcm(tcm);
     }
     html += `<div class="actions">
       <button class="btn" onclick="window.print()">🖨 印刷</button>
