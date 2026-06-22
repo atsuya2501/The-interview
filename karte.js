@@ -76,6 +76,44 @@ function renderBirth() {
 
 function labelFor(key) { return LABELS[key] || key.replace(/_/g, ' '); }
 
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+
+// 経過記録（その日の症状）カード。エントリは hidden(data-path=progress_log) にJSONで保持し保存/書き出しに含む
+function buildProgressCard() {
+  return `<section class="card k-section" id="progress-card">
+    <h2>経過記録（その日の症状）</h2>
+    <div class="k-field"><span class="k-label">日付</span><input type="date" id="pl-date"></div>
+    <div class="k-field"><span class="k-label">本日の症状・所見</span><textarea id="pl-text" rows="3" placeholder="例：右肩の夜間痛が軽減。挙上◯◯度まで改善…"></textarea></div>
+    <div class="actions" style="margin-top:.4rem"><button class="btn primary" id="pl-add">＋ 記録を追加</button></div>
+    <input type="hidden" data-path="progress_log" id="pl-store">
+    <div id="pl-list"></div>
+  </section>`;
+}
+
+function getProgressEntries() {
+  const store = document.getElementById('pl-store');
+  if (!store) return [];
+  try { return JSON.parse(store.value || '[]'); } catch (e) { return []; }
+}
+function renderProgressLog() {
+  const list = document.getElementById('pl-list');
+  if (!list) return;
+  const arr = getProgressEntries();
+  list.innerHTML = arr.length ? arr.map((e, i) =>
+    `<div class="pl-entry"><div class="pl-meta">${escapeHtml(e.date || '')}</div>
+     <div class="pl-body">${escapeHtml(e.text || '').replace(/\n/g, '<br>')}</div>
+     <button class="btn pl-del" data-i="${i}">削除</button></div>`).join('')
+    : '<p class="hint">まだ記録がありません。</p>';
+  list.querySelectorAll('.pl-del').forEach(b => b.addEventListener('click', () => {
+    const arr2 = getProgressEntries();
+    arr2.splice(Number(b.dataset.i), 1);
+    document.getElementById('pl-store').value = JSON.stringify(arr2);
+    saveForm(); renderProgressLog();
+  }));
+}
+
 function renderField(path, key, val, enumArr) {
   const dp = `${path}.${key}`;
   const label = labelFor(key);
@@ -194,6 +232,7 @@ function applyData(data) {
     });
   }
   updateAge();
+  renderProgressLog();
 }
 function saveForm() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(serializeForm())); } catch (e) {} }
 function restoreForm() { let d; try { d = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch (e) {} if (d) applyData(d); }
@@ -467,6 +506,7 @@ async function init() {
       if (k === 'stimulus_decision') { html += renderTcm(tcm); continue; }
       html += renderSection(k, karte[k], 0, '');
     }
+    html += buildProgressCard();
     html += `<div class="actions">
       <button class="btn" onclick="window.print()">🖨 印刷</button>
       <button class="btn" id="k-clear">🗑 入力をクリア</button>
@@ -481,6 +521,22 @@ async function init() {
     updateStimulus();
     buildTreatmentSuggest();
     buildPatientScript();
+
+    // 経過記録：日付デフォルト＝本日、追加ボタン、一覧描画
+    const plDate = document.getElementById('pl-date');
+    if (plDate && !plDate.value) plDate.value = new Date().toISOString().slice(0, 10);
+    renderProgressLog();
+    const plAdd = document.getElementById('pl-add');
+    if (plAdd) plAdd.addEventListener('click', () => {
+      const d = (document.getElementById('pl-date').value) || new Date().toISOString().slice(0, 10);
+      const t = document.getElementById('pl-text').value.trim();
+      if (!t) { alert('本日の症状を入力してください。'); return; }
+      const arr = getProgressEntries();
+      arr.unshift({ date: d, text: t });
+      document.getElementById('pl-store').value = JSON.stringify(arr);
+      document.getElementById('pl-text').value = '';
+      saveForm(); renderProgressLog();
+    });
 
     // 自動保存（下書き）＋年齢/刺激サジェスト再計算
     const onChange = (e) => {

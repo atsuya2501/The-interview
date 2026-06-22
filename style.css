@@ -44,6 +44,12 @@ header h1 small { font-size: .7rem; font-weight: 500; opacity: .8; }
 .dur { width: 6rem; border: 1px solid var(--border); border-radius: 8px; padding: .4rem .5rem; font: inherit; }
 .birth-row select { flex: 1; border: 1px solid var(--border); border-radius: 8px; padding: .45rem .4rem; font: inherit; font-size: .88rem; }
 
+/* progress log */
+.pl-entry { border: 1px solid var(--border); border-radius: 8px; padding: .5rem .6rem; margin-top: .5rem; position: relative; }
+.pl-meta { font-size: .76rem; font-weight: 700; color: var(--accent); margin-bottom: .2rem; }
+.pl-body { font-size: .85rem; white-space: normal; }
+.pl-del { font-size: .72rem; padding: .2rem .5rem; margin-top: .4rem; }
+
 /* karte form */
 .k-section { }
 .k-subsection { border-left: 2px solid var(--border); padding-left: .7rem; margin: .6rem 0; }
