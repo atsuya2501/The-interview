@@ -114,6 +114,7 @@ h3 { font-size: .95rem; margin: .9rem 0 .4rem; color: var(--primary); }
 .btn { border: 1.5px solid var(--border); background: var(--surface); border-radius: 10px; padding: .7rem 1.1rem; font-size: .9rem; font-weight: 600; cursor: pointer; transition: all .15s; }
 .btn:hover { border-color: var(--accent); }
 .btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); margin-left: auto; }
+.back-btn { display: block; margin-top: 1rem; color: var(--muted); }
 .btn.primary:hover { background: #1f63c4; }
 
 /* alerts */

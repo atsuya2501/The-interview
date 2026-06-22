@@ -272,15 +272,28 @@ function renderProgress() {
 function renderStep() {
   renderProgress();
   switch (state.step) {
-    case 0: return renderRegion();
-    case 1: return renderRedFlags();
-    case 2: return renderBranch();
-    case 3: return renderMovement();
-    case 4: return renderFindings();
-    case 5: return renderLevel();
-    case 6: return renderTreatment();
-    case 99: return renderBlocked();
+    case 0: renderRegion(); break;
+    case 1: renderRedFlags(); break;
+    case 2: renderBranch(); break;
+    case 3: renderMovement(); break;
+    case 4: renderFindings(); break;
+    case 5: renderLevel(); break;
+    case 6: renderTreatment(); break;
+    case 99: renderBlocked(); break;
   }
+  injectBackButton();
+}
+
+// 各ステップに「← 戻る」を付与（誤タップ時に1つ前へ戻れる）
+function injectBackButton() {
+  if (![1, 2, 3, 4, 5].includes(state.step)) return;
+  const card = app().querySelector('.card');
+  if (!card) return;
+  const back = document.createElement('button');
+  back.className = 'btn back-btn';
+  back.textContent = '← 戻る';
+  back.addEventListener('click', () => { state.step = state.step - 1; renderStep(); });
+  card.appendChild(back);
 }
 
 // =====================================================================
@@ -882,6 +895,8 @@ function renderTreatment() {
       ${levelHtml}
       ${sugHtml}
       <div class="actions">
+        ${localStorage.getItem('intake_return') === '1'
+          ? '<a class="btn primary" href="intake.html#step-4">問診へ戻る（Step4へ）→</a>' : ''}
         <button class="btn" id="restart">最初からやり直す</button>
       </div>
     </section>`;
@@ -901,6 +916,7 @@ function restart() {
   state.scored = [];
   state.blockReasons = [];
   state.severityWarnings = [];
+  try { localStorage.removeItem('intake_return'); } catch (e) {}
   renderStep();
 }
 

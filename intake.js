@@ -63,9 +63,10 @@ function qInput(q) {
 
 function renderStep(step) {
   if (step.redirect) {
-    return `<section class="card"><div class="step-tag">STEP ${step.step}</div><h2>${step.title}</h2>
+    return `<section class="card" id="step-${step.step}"><div class="step-tag">STEP ${step.step}</div><h2>${step.title}</h2>
       <p class="lead">${step.redirect}</p>
-      <a class="btn primary" href="index.html">🔎 鑑別エンジンを開く</a></section>`;
+      <a class="btn primary" id="to-diff" href="index.html">🔎 鑑別エンジンを開く</a>
+      <p class="hint">鑑別が終わると結果画面の「問診へ戻る（Step4へ）」でここに戻れます。</p></section>`;
   }
   const qs = step.questions.map(q => `
     <div class="q-block">
@@ -73,7 +74,7 @@ function renderStep(step) {
       ${qInput(q)}
       ${q.note ? `<p class="hint">${q.note}</p>` : ''}
     </div>`).join('');
-  return `<section class="card"><div class="step-tag">STEP ${step.step}</div><h2>${step.title}</h2>${qs}</section>`;
+  return `<section class="card" id="step-${step.step}"><div class="step-tag">STEP ${step.step}</div><h2>${step.title}</h2>${qs}</section>`;
 }
 
 // ---- 回答取得 ----
@@ -184,8 +185,17 @@ async function init() {
     app().innerHTML = html;
 
     restoreIntake();
+    try { localStorage.removeItem('intake_return'); } catch (e) {} // 戻ってきた＝フラグ消費
+    const toDiff = document.getElementById('to-diff');
+    if (toDiff) toDiff.addEventListener('click', () => { try { localStorage.setItem('intake_return', '1'); } catch (e) {} });
     app().addEventListener('input', saveIntake);
     app().addEventListener('change', saveIntake);
+
+    // 鑑別から戻ってきた場合は指定ステップへスクロール
+    if (location.hash) {
+      const target = document.querySelector(location.hash);
+      if (target) setTimeout(() => target.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+    }
 
     document.getElementById('apply').addEventListener('click', () => {
       const out = deriveAndWrite();
