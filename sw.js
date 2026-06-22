@@ -1,9 +1,10 @@
-const CACHE = 'itami-kanbe-v30';
+const CACHE = 'itami-kanbe-v31';
 const ASSETS = [
   '/',
   '/index.html',
   '/style.css',
   '/app.js',
+  '/app-engine.js',
   '/karte.html',
   '/karte.js',
   '/intake.html',
