@@ -7,6 +7,23 @@
   },
   "diseases": [
     {
+      "id": "wrist_synovitis",
+      "name": "手関節の腫れ（滑膜炎・腱鞘炎）",
+      "branch": "手首",
+      "prevalence": "common",
+      "treatment_track": "局所筋骨格",
+      "movement_related": true,
+      "findings": {
+        "confirm": [
+          { "sign": "手関節の腫脹・熱感", "lr": null, "rank": 1 },
+          { "sign": "手首の運動時痛", "lr": null, "rank": 2 },
+          { "sign": "つかむ・ひねる動作で増悪", "lr": null, "rank": 2 }
+        ],
+        "exclude": []
+      },
+      "note": "鍼適応。手関節の滑膜炎・腱鞘炎。炎症期→拘縮期→回復期の経過をたどる。関節リウマチ等の全身性が背景にないか確認。"
+    },
+    {
       "id": "carpal_tunnel",
       "name": "手根管症候群",
       "branch": "手首",

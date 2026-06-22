@@ -46,7 +46,7 @@
   ],
   "chronic_management_scripts": [
     {
-      "disease_id": "knee_oa",
+      "disease_id": "knee_osteoarthritis",
       "disease_name": "変形性膝関節症",
       "region": "knee",
       "script": "これは関節の軟骨がすり減って起こるもので、完全に元通りに治すというより、うまく付き合って進行を抑えていく種類の症状です。体重管理と、膝まわりの筋力を保つことが、痛みを抑えて進行を緩やかにする一番の土台になります。鍼灸は痛みを和らげ、動きやすさと筋肉の働きを保つ方向に働きます。",

@@ -13,6 +13,7 @@ const STORAGE_KEY = 'karte_form_data';   // 作業中の下書き
 const RECORDS_KEY = 'karte_records';      // 保存済みカルテ群
 let STIM_MOD = null;                      // stimulus_modulation（刺激量サジェスト）
 let TRACK_MECH = null, TREATMENTS = null, ELECTRO = null; // 治療プラン自動提案用
+let PATIENT_SCRIPTS = null; // 患者向け説明スクリプト
 
 const LABELS = {
   profile: '基本情報', engine_output: '鑑別エンジン出力（自動入力）', checks: '確認項目',
@@ -353,20 +354,66 @@ function buildTreatmentSuggest() {
   saveForm();
 }
 
+// 確定疾患IDから患者向け説明スクリプトを表示（病期進行型は病期セレクト付き）
+function buildPatientScript() {
+  if (!PATIENT_SCRIPTS) return;
+  let data; try { data = JSON.parse(localStorage.getItem('karte_engine_output') || 'null'); } catch (e) {}
+  const id = data && data.confirmed_disease_id;
+  if (!id) return;
+
+  const phase = (PATIENT_SCRIPTS.phase_progression_scripts || []).find(s => s.disease_id === id);
+  const chronic = (PATIENT_SCRIPTS.chronic_management_scripts || []).find(s => s.disease_id === id);
+  if (!phase && !chronic) return;
+
+  const card = document.createElement('section');
+  card.className = 'card';
+  if (phase) {
+    const opts = phase.phases.slice().sort((a, b) => a.order - b.order)
+      .map(p => `<option value="${p.phase}">${p.phase}</option>`).join('');
+    card.innerHTML = `<h2>患者向け説明（${phase.disease_name}）</h2>
+      <p class="lead">経過：${phase.overall_duration}。病期を選ぶと説明文が出ます。</p>
+      <div class="k-field"><span class="k-label">現在の病期</span><select id="ps-phase">${opts}</select></div>
+      <div id="ps-text" class="obs-block"></div>
+      <p class="hint">${phase.treatment_role}</p>`;
+  } else {
+    card.innerHTML = `<h2>患者向け説明（${chronic.disease_name}）</h2>
+      <div class="obs-block"><p>${chronic.script}</p></div>
+      ${chronic.referral_note ? `<p class="hint">⚠ ${chronic.referral_note}</p>` : ''}`;
+  }
+
+  // 直下の最終 .actions（印刷バー）の前に挿入（入れ子の保存ボタン群を避ける）
+  const directActions = [...app().children].filter(el => el.classList && el.classList.contains('actions'));
+  const anchor = directActions[directActions.length - 1];
+  if (anchor) app().insertBefore(card, anchor); else app().appendChild(card);
+
+  if (phase) {
+    const sel = document.getElementById('ps-phase');
+    const txt = document.getElementById('ps-text');
+    const draw = () => {
+      const p = phase.phases.find(x => x.phase === sel.value);
+      txt.innerHTML = p ? `<p>${p.script}</p>` : '';
+    };
+    sel.addEventListener('change', draw);
+    draw();
+  }
+}
+
 async function init() {
   try {
-    const [karte, tcm, stim, tmech, tmaster, electro] = await Promise.all([
+    const [karte, tcm, stim, tmech, tmaster, electro, pscripts] = await Promise.all([
       fetch('data/karte_schema.json').then(r => r.json()),
       fetch('data/tcm_findings.json').then(r => r.json()),
       fetch('data/stimulus_modulation.json').then(r => r.json()).catch(() => null),
       fetch('data/track_to_mechanism.json').then(r => r.json()).catch(() => null),
       fetch('data/treatment_master.json').then(r => r.json()).catch(() => null),
-      fetch('data/electrotherapy_params.json').then(r => r.json()).catch(() => null)
+      fetch('data/electrotherapy_params.json').then(r => r.json()).catch(() => null),
+      fetch('data/patient_scripts.json').then(r => r.json()).catch(() => null)
     ]);
     STIM_MOD = stim;
     TRACK_MECH = tmech;
     TREATMENTS = tmaster && tmaster[0] ? tmaster[0].treatments : null;
     ELECTRO = electro;
+    PATIENT_SCRIPTS = pscripts;
 
     const order = Object.keys(karte).filter(k => !META.has(k) && typeof karte[k] === 'object');
     let html = buildControls();
@@ -387,6 +434,7 @@ async function init() {
     updateAge();
     updateStimulus();
     buildTreatmentSuggest();
+    buildPatientScript();
 
     // 自動保存（下書き）＋年齢/刺激サジェスト再計算
     const onChange = (e) => {
