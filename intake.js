@@ -63,10 +63,10 @@ function qInput(q) {
 
 function renderStep(step) {
   if (step.redirect) {
-    return `<section class="card" id="step-${step.step}"><div class="step-tag">STEP ${step.step}</div><h2>${step.title}</h2>
+    return `<section class="card intake-step" id="step-${step.step}" data-stepnum="${step.step}"><div class="step-tag">STEP ${step.step} / 6</div><h2>${step.title}</h2>
       <p class="lead">${step.redirect}</p>
       <a class="btn primary" id="to-diff" href="index.html">🔎 鑑別エンジンを開く</a>
-      <p class="hint">鑑別が終わると結果画面の「問診へ戻る（Step4へ）」でここに戻れます。</p></section>`;
+      <p class="hint">鑑別が終わると結果画面の「問診へ戻る」でこの続き（Step4）に戻れます。</p></section>`;
   }
   const qs = step.questions.map(q => `
     <div class="q-block">
@@ -74,7 +74,7 @@ function renderStep(step) {
       ${qInput(q)}
       ${q.note ? `<p class="hint">${q.note}</p>` : ''}
     </div>`).join('');
-  return `<section class="card" id="step-${step.step}"><div class="step-tag">STEP ${step.step}</div><h2>${step.title}</h2>${qs}</section>`;
+  return `<section class="card intake-step" id="step-${step.step}" data-stepnum="${step.step}"><div class="step-tag">STEP ${step.step} / 6</div><h2>${step.title}</h2>${qs}</section>`;
 }
 
 // ---- 回答取得 ----
@@ -175,40 +175,70 @@ async function init() {
       fetch('data/intake_flow.json').then(r => r.json()),
       fetch('data/karte_schema.json').then(r => r.json())
     ]);
-    let html = `<section class="card"><p class="lead">各ステップに回答し、最後に「カルテへ反映」を押すとカルテの該当欄が自動入力されます。Step3（疾患把握）は鑑別エンジンへ。</p></section>`;
-    FLOW.flow.forEach(step => { html += renderStep(step); });
-    html += `<section class="card" id="summary-card" hidden><h2>反映内容</h2><div id="summary"></div></section>`;
-    html += `<div class="actions">
-      <button class="btn primary" id="apply">カルテへ反映 →</button>
-      <a class="btn" href="karte.html">🗂 カルテを開く</a>
+    // 全ステップを描画（DOMには常に保持＝集計は全回答を参照）。表示は1ステップずつ。
+    let html = FLOW.flow.map(renderStep).join('');
+    html += `<section class="card intake-step" id="step-done" data-stepnum="done" hidden>
+      <h2>問診完了</h2><div id="summary"></div></section>`;
+    html += `<div class="actions" id="wiz-nav">
+      <button class="btn" id="wiz-back">← 戻る</button>
+      <button class="btn primary" id="wiz-next">次へ →</button>
     </div>`;
     app().innerHTML = html;
 
     restoreIntake();
-    try { localStorage.removeItem('intake_return'); } catch (e) {} // 戻ってきた＝フラグ消費
-    const toDiff = document.getElementById('to-diff');
-    if (toDiff) toDiff.addEventListener('click', () => { try { localStorage.setItem('intake_return', '1'); } catch (e) {} });
     app().addEventListener('input', saveIntake);
     app().addEventListener('change', saveIntake);
 
-    // 鑑別から戻ってきた場合は指定ステップへスクロール
-    if (location.hash) {
-      const target = document.querySelector(location.hash);
-      if (target) setTimeout(() => target.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
-    }
+    // ---- 1ステップずつ表示するウィザード制御 ----
+    const stepEls = [...document.querySelectorAll('.intake-step')]; // 6問診 + done
+    const lastIdx = stepEls.length - 1; // done
+    const back = document.getElementById('wiz-back');
+    const next = document.getElementById('wiz-next');
 
-    document.getElementById('apply').addEventListener('click', () => {
+    function showStep(i) {
+      i = Math.max(0, Math.min(lastIdx, i));
+      stepEls.forEach((el, n) => { el.hidden = (n !== i); });
+      back.style.visibility = i === 0 ? 'hidden' : 'visible';
+      // 最終ステップ(done)の手前(Step6)では「完了」、doneでは非表示
+      if (i === lastIdx) { next.hidden = true; }
+      else { next.hidden = false; next.textContent = (i === lastIdx - 1) ? '完了してカルテへ →' : '次へ →'; }
+      try { localStorage.setItem('intake_step', String(i)); } catch (e) {}
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    const indexOfStepNum = n => stepEls.findIndex(el => el.dataset.stepnum === String(n));
+
+    // 鑑別から戻った場合は Step4 を表示、それ以外は保存済みステップを復元
+    let startIdx = 0;
+    let returned = false;
+    try { returned = localStorage.getItem('intake_return') === '1'; } catch (e) {}
+    if (returned) { startIdx = indexOfStepNum(4); try { localStorage.removeItem('intake_return'); } catch (e) {} }
+    else { try { startIdx = Number(localStorage.getItem('intake_step') || 0) || 0; } catch (e) {} }
+    showStep(startIdx);
+
+    back.addEventListener('click', () => showStep(stepEls.findIndex(el => !el.hidden) - 1));
+    next.addEventListener('click', () => {
+      const cur = stepEls.findIndex(el => !el.hidden);
+      if (cur === lastIdx - 1) { finish(); return; } // Step6 → 完了
+      showStep(cur + 1);
+    });
+
+    // Step3：鑑別エンジンへ（戻ると Step4 から再開）
+    const toDiff = document.getElementById('to-diff');
+    if (toDiff) toDiff.addEventListener('click', () => { try { localStorage.setItem('intake_return', '1'); } catch (e) {} });
+
+    // 完了：カルテへ反映して遷移
+    function finish() {
       const out = deriveAndWrite();
       const keys = Object.keys(out);
-      const sc = document.getElementById('summary-card');
       const sm = document.getElementById('summary');
-      if (!keys.length) { alert('回答がありません。'); return; }
-      sm.innerHTML = `<ul class="hit-list">${keys.map(k =>
-        `<li><span>${k.split('.').pop()}</span><span>${Array.isArray(out[k]) ? out[k].join('・') : out[k]}</span></li>`).join('')}</ul>
-        <p class="hint">カルテに保存しました。「🗂 カルテを開く」で確認できます。</p>`;
-      sc.hidden = false;
-      sc.scrollIntoView({ behavior: 'smooth' });
-    });
+      sm.innerHTML = keys.length
+        ? `<p class="lead">カルテに反映しました。</p><ul class="hit-list">${keys.map(k =>
+            `<li><span>${k.split('.').pop()}</span><span>${Array.isArray(out[k]) ? out[k].join('・') : out[k]}</span></li>`).join('')}</ul>
+           <div class="actions"><a class="btn primary" href="karte.html">🗂 カルテを開く →</a></div>`
+        : `<p class="lead">回答が少なく反映項目はありません。</p><div class="actions"><a class="btn" href="karte.html">🗂 カルテを開く</a></div>`;
+      try { localStorage.removeItem('intake_step'); } catch (e) {}
+      showStep(lastIdx);
+    }
   } catch (e) {
     app().innerHTML = `<div class="card error">問診フローの読み込みに失敗しました：${e.message}</div>`;
   }
