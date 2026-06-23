@@ -24,6 +24,8 @@ let OVERRIDES = [];    // 部位レベルの強制🔴オーバーライド [{si
 let DERMATOME = null;  // 神経根デルマトームマップ（共有リソース）
 let PERIPHERAL = null; // 末梢神経支配領域マップ（共有リソース）
 let TRACK_MECH = null; // treatment_track → 機序id 対応（treatment_resolver）
+let ELECTRO = null;    // 鍼通電パラメータ（機序別 周波数・強度・時間）
+let PATIENT_SCRIPTS = null; // 患者向け説明スクリプト
 
 // 部位定義。wrapped=true は [{...}] の配列ラップ（首）、false は素のオブジェクト（頭・腰）。
 const REGIONS = {
@@ -93,7 +95,21 @@ const TRACK_NOTE = {
   '自律神経':   '体性-自律神経反射・脳レベルの調整を中心に。',
   '要医療機関': '鍼治療の対象外。医療機関での対応が必要。',
   '経過観察':   '鍼の適応となりうるが、改善しなければ受診勧奨。',
-  '腰橋渡し':   '腰由来の関連痛の可能性。腰の鑑別を参照。'
+  '腰橋渡し':   '腰由来の関連痛の可能性。腰の鑑別を参照。',
+  // 記述的トラック（足部・全身）— 丸めず各トラックのコメントを表示
+  '末梢神経絞扼': '絞扼部の局所鎮痛＋周囲の血流改善が中心。',
+  '腱・腱付着部': '腱付着部の圧痛・反応点へ雀啄/響き。血流改善を併用。',
+  '足底腱膜・筋膜': '踵骨付着部の圧痛点へ雀啄・響き。足底腱膜の緊張緩和。',
+  '骨・付着部':   '付着部・反応点への局所鎮痛が中心。',
+  '変形性関節症': '関節周囲の局所鎮痛＋関連筋の緊張緩和（下肢/上肢はIa/Ib併用）。',
+  '変形・アライメント': '関連筋の血流・緊張緩和。装具・運動指導を併用。',
+  '全身調整・対症': '中枢性・全身性。下行性抑制・自律神経調整など脳レベル機序が中心。',
+  '対症・足底ケア': '足底ケア・装具が主。鍼は限定的に対症で。',
+  '靭帯捻挫':   '急性炎症が主。炎症部位周囲への軽微刺激から（骨折除外を先に）。',
+  '骨折':       '骨癒合は鍼対象外。整形外科紹介＋疼痛緩和の補助のみ。',
+  '腱断裂':     '急性は整形外科。保存・術後リハ期に血流改善・鎮痛で関与。',
+  '痛風':       '発作期は内科主導。間欠期に全身調整で関与。',
+  '緊急医療':   '即医療機関。鍼適応外。'
 };
 
 // 神経根レベル（L3等）のデルマトーム情報を全領域から検索
@@ -157,18 +173,22 @@ const app = () => document.getElementById('app');
 async function init() {
   try {
     // 部位共通マスタ（治療・検査方法）を先読み
-    const [tx, methods, derm, periph, trackMech] = await Promise.all([
+    const [tx, methods, derm, periph, trackMech, electro, pscripts] = await Promise.all([
       fetch('data/treatment_master.json').then(r => r.json()),
       fetch('data/test_methods.json').then(r => r.json()),
       fetch('data/dermatome_map.json').then(r => r.json()),
       fetch('data/peripheral_nerve_map.json').then(r => r.json()),
-      fetch('data/track_to_mechanism.json').then(r => r.json())
+      fetch('data/track_to_mechanism.json').then(r => r.json()),
+      fetch('data/electrotherapy_params.json').then(r => r.json()).catch(() => null),
+      fetch('data/patient_scripts.json').then(r => r.json()).catch(() => null)
     ]);
     TREATMENTS = tx[0].treatments;
     TEST_METHODS = methods.test_methods || {};
     DERMATOME = derm || null;
     PERIPHERAL = periph || null;
     TRACK_MECH = trackMech || null;
+    ELECTRO = electro || null;
+    PATIENT_SCRIPTS = pscripts || null;
     renderStep(); // step 0 = 部位選択
   } catch (e) {
     app().innerHTML = `<div class="card error">データの読み込みに失敗しました：${e.message}</div>`;

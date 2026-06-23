@@ -90,8 +90,16 @@ function renderFindings() {
   app().querySelectorAll('.tri').forEach(btn => {
     btn.addEventListener('click', () => {
       const k = btn.dataset.k, v = btn.dataset.v;
-      state.findingAnswers[k] = state.findingAnswers[k] === v ? undefined : v;
-      renderStep();
+      const newVal = state.findingAnswers[k] === v ? undefined : v;
+      state.findingAnswers[k] = newVal;
+      // 全再描画せず、同じ所見の pos/neg ボタンの見た目だけ更新
+      // （実施方法トグルの開閉状態・スクロール位置を維持＝臨床で連打する画面の体感改善）
+      app().querySelectorAll(`.tri[data-k="${k}"]`).forEach(b => {
+        const on = b.dataset.v === newVal;
+        b.classList.toggle('on', on);
+        b.classList.toggle('pos', on && b.dataset.v === 'pos');
+        b.classList.toggle('neg', on && b.dataset.v === 'neg');
+      });
     });
   });
 
@@ -303,6 +311,42 @@ function resolveMechanisms(d) {
   return { txs, primarySet, reason: m.reason, phaseNote: m.phase_note, conditional: m.treat === 'conditional', redirect: m.redirect_to };
 }
 
+// 機序id → 鍼通電パラメータ（周波数・刺激量・時間）文字列。下行性は痛みタイプで周波数を選択。
+function esParamsText(id) {
+  if (!ELECTRO || !ELECTRO.mechanism_params) return '';
+  const ps = ELECTRO.mechanism_params.filter(p => p.mechanism_id === id);
+  if (!ps.length) return '';
+  return ps.map(p => {
+    if (p.frequency_variants) {
+      // step5の痛みタイプ（情動/天候）から受容体→周波数を逆引き（無ければμデフォルト）
+      const v = dp => state.levelAnswers && false; // levelAnswersは高位診断用なので未使用
+      const variant = p.frequency_variants[0]; // 結果画面ではμデフォルト（詳細選択はカルテ側step5連動）
+      return `${variant.frequency_hz}・${p.intensity}・${variant.time_min}分（${variant.opioid || ''}/${variant.receptor || ''}）`;
+    }
+    return `${p.frequency_hz}・${p.intensity}・${p.time_min}分${p.site ? '（' + p.site + '）' : ''}`;
+  }).join(' ／ ');
+}
+
+// 確定疾患(1位)の患者向け説明HTML（phase進行型/慢性管理型）
+function patientScriptHtml(diseaseId) {
+  if (!PATIENT_SCRIPTS || !diseaseId) return '';
+  const ph = (PATIENT_SCRIPTS.phase_progression_scripts || []).find(s => s.disease_id === diseaseId);
+  const ch = (PATIENT_SCRIPTS.chronic_management_scripts || []).find(s => s.disease_id === diseaseId);
+  if (ph) {
+    const first = ph.phases.slice().sort((a, b) => a.order - b.order)[0];
+    return `<div class="card"><h2>患者向け説明（${ph.disease_name}）</h2>
+      <p class="hint">経過：${ph.overall_duration}。下は炎症期の例（カルテで病期を切替可）。</p>
+      <div class="obs-block"><p>${first ? first.script : ''}</p></div>
+      <p class="hint">${ph.treatment_role}</p></div>`;
+  }
+  if (ch) {
+    return `<div class="card"><h2>患者向け説明（${ch.disease_name}）</h2>
+      <div class="obs-block"><p>${ch.script}</p></div>
+      ${ch.referral_note ? `<p class="hint">⚠ ${ch.referral_note}</p>` : ''}</div>`;
+  }
+  return '';
+}
+
 function renderTreatment() {
   state.step = 99; // 結果画面（プログレス満タン）
   renderProgress();
@@ -396,9 +440,11 @@ function renderTreatment() {
       : isReferral
       ? referralHtml
       : `<div class="tx-block">
-           <p class="tx-track">治療方針：<strong>${s.disease.treatment_track}</strong> — ${TRACK_NOTE[track] || ''}</p>
+           <p class="tx-track">治療方針：<strong>${s.disease.treatment_track}</strong> — ${TRACK_NOTE[s.disease.treatment_track] || TRACK_NOTE[track] || ''}</p>
            ${resolved && resolved.reason ? `<p class="resolver-reason">🧭 ${resolved.reason}</p>` : ''}
-           ${txs.map(t => `
+           ${txs.map(t => {
+             const es = esParamsText(t.id);
+             return `
              <div class="tx">
                <div class="tx-head">${(resolved && resolved.primarySet.has(t.id)) ? '<span class="tag primary-tag">第一選択</span> ' : ''}${t.mechanism} <span class="tag">${t.category}</span> <span class="tag light">${t.level}</span></div>
                <div class="tx-body">
@@ -406,8 +452,9 @@ function renderTreatment() {
                  <div><b>治療点</b> ${t.treatment_location}</div>
                  <div><b>手技</b> ${t.technique}</div>
                  <div><b>神経線維</b> ${t.nerve_fiber.join('・')}</div>
+                 ${es ? `<div><b>鍼通電</b> ${es}</div>` : ''}
                </div>
-             </div>`).join('')}
+             </div>`; }).join('')}
          </div>`;
 
     return `
@@ -434,12 +481,16 @@ function renderTreatment() {
   const warnHtml = [...state.redWarnings, ...state.severityWarnings].map(f =>
     `<div class="alert yellow"><strong>🟡 ${f.title}</strong><p>${f.message}</p></div>`).join('');
 
+  const topDisease = suggestions[0] && suggestions[0].disease;
+  const scriptHtml = topDisease ? patientScriptHtml(topDisease.id) : '';
+
   app().innerHTML = `
     <section class="result">
       <div class="result-banner">示唆される鑑別（確定診断ではありません）</div>
       ${warnHtml}
       ${levelHtml}
       ${sugHtml}
+      ${scriptHtml}
       <div class="actions">
         ${localStorage.getItem('intake_return') === '1'
           ? '<a class="btn primary" href="intake.html#step-4">問診へ戻る（Step4へ）→</a>' : ''}
