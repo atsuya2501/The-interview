@@ -75,6 +75,31 @@ const RED_FLAGS = [
     level: 'yellow',
     title: '頚椎症性脊髄症の可能性',
     message: '脊髄障害のサインです。治療と並行して医療機関の受診を強く推奨します（治療は警告つきで継続可）。'
+  },
+  // 胸・心臓関連痛（筋骨格に偽装する致死的疾患）。胸＋偽装ルートの肩・肘で提示。
+  {
+    id: 'cardiac_acs',
+    regions: ['chest', 'shoulder', 'elbow'],
+    level: 'red',
+    label: '胸の締めつけ感、または安静時・労作で誘発される痛みで、肩・腕・顎へ放散する／冷汗・嘔気を伴う（動きと無関係）',
+    title: '急性冠症候群の疑い（心筋梗塞・狭心症）',
+    message: '分単位で致命的です。鍼治療の対象外。直ちに救急要請（119）してください。'
+  },
+  {
+    id: 'aortic_dissection_flag',
+    regions: ['chest'],
+    level: 'red',
+    label: '裂けるような激痛・移動する痛み・背部への痛み',
+    title: '大動脈解離の疑い',
+    message: '分単位で致命的です。直ちに救急要請してください。'
+  },
+  {
+    id: 'pe_pneumothorax_flag',
+    regions: ['chest'],
+    level: 'red',
+    label: '突然の呼吸困難を伴う胸痛',
+    title: '肺塞栓・気胸の疑い',
+    message: '致死的の可能性。直ちに医療機関を受診してください。'
   }
 ];
 
@@ -365,8 +390,13 @@ function stepHeader(n, title) {
 // =====================================================================
 // ① レッドフラッグゲート
 // =====================================================================
+// 現在の部位で表示すべきレッドフラッグ（regions未指定＝全部位共通）
+function activeRedFlags() {
+  return RED_FLAGS.filter(f => !f.regions || f.regions.includes(state.region));
+}
+
 function renderRedFlags() {
-  const items = RED_FLAGS.map(f => `
+  const items = activeRedFlags().map(f => `
     <label class="check ${f.level}">
       <input type="checkbox" data-rf="${f.id}" ${state.redAnswers[f.id] ? 'checked' : ''}>
       <span class="dot ${f.level}"></span>
@@ -392,7 +422,7 @@ function renderRedFlags() {
   document.getElementById('next1').addEventListener('click', () => {
     state.blockReasons = [];
     state.redWarnings = [];
-    for (const f of RED_FLAGS) {
+    for (const f of activeRedFlags()) {
       if (state.redAnswers[f.id]) {
         if (f.level === 'red') state.blockReasons.push({ title: f.title, message: f.message });
         else state.redWarnings.push(f);
