@@ -167,6 +167,9 @@ const state = {
 const TOTAL_STEPS = 6;
 const app = () => document.getElementById('app');
 
+// 問診ページ内に iframe 埋め込みされている時はヘッダー等を隠す
+if (window.self !== window.top) document.documentElement.classList.add('embed');
+
 // =====================================================================
 // 起動
 // =====================================================================

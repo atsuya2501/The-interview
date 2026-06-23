@@ -36,6 +36,9 @@ header h1 small { font-size: .7rem; font-weight: 500; opacity: .8; }
 .nav-link:hover { background: rgba(255,255,255,.3); }
 
 /* intake wizard */
+.diff-frame { width: 100%; height: 74vh; border: 1px solid var(--border); border-radius: 10px; background: #fff; margin-top: .5rem; }
+.embed header, .embed .disclaimer { display: none !important; }
+.embed main { padding-top: .5rem; }
 .q-block { border-top: 1px solid var(--border); padding: .7rem 0; }
 .q-block:first-of-type { border-top: none; }
 .q-text { font-size: .92rem; font-weight: 600; margin-bottom: .4rem; }

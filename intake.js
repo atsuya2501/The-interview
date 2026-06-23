@@ -63,10 +63,9 @@ function qInput(q) {
 
 function renderStep(step) {
   if (step.redirect) {
-    return `<section class="card intake-step" id="step-${step.step}" data-stepnum="${step.step}"><div class="step-tag">STEP ${step.step} / 6</div><h2>${step.title}</h2>
-      <p class="lead">${step.redirect}</p>
-      <a class="btn primary" id="to-diff" href="index.html">🔎 鑑別エンジンを開く</a>
-      <p class="hint">鑑別が終わると結果画面の「問診へ戻る」でこの続き（Step4）に戻れます。</p></section>`;
+    return `<section class="card intake-step" id="step-${step.step}" data-stepnum="${step.step}"><div class="step-tag">STEP ${step.step} / 6</div><h2>${step.title}（鑑別）</h2>
+      <p class="lead">下の鑑別を進め、結果画面の「問診の続き（Step4）へ」でStep4に進みます。</p>
+      <iframe id="diff-frame" class="diff-frame" title="鑑別エンジン"></iframe></section>`;
   }
   const qs = step.questions.map(q => `
     <div class="q-block">
@@ -203,6 +202,12 @@ async function init() {
       if (i === lastIdx) { next.hidden = true; }
       else { next.hidden = false; next.textContent = (i === lastIdx - 1) ? '完了してカルテへ →' : '次へ →'; }
       try { localStorage.setItem('intake_step', String(i)); } catch (e) {}
+      // Step3 表示時に鑑別 iframe を遅延ロード
+      const cur = stepEls[i];
+      if (cur && cur.dataset.stepnum === '3') {
+        const f = cur.querySelector('#diff-frame');
+        if (f && !f.src) f.src = 'index.html';
+      }
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
     const indexOfStepNum = n => stepEls.findIndex(el => el.dataset.stepnum === String(n));
@@ -222,9 +227,13 @@ async function init() {
       showStep(cur + 1);
     });
 
-    // Step3：鑑別エンジンへ（戻ると Step4 から再開）
-    const toDiff = document.getElementById('to-diff');
-    if (toDiff) toDiff.addEventListener('click', () => { try { localStorage.setItem('intake_return', '1'); } catch (e) {} });
+    // 鑑別 iframe からの完了通知 → Step4 へ自動遷移
+    window.addEventListener('message', (e) => {
+      if (e.data && e.data.type === 'intake-continue') {
+        const i = indexOfStepNum(4);
+        if (i >= 0) showStep(i);
+      }
+    });
 
     // 完了：カルテへ反映して遷移
     function finish() {

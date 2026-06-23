@@ -492,12 +492,18 @@ function renderTreatment() {
       ${sugHtml}
       ${scriptHtml}
       <div class="actions">
-        ${localStorage.getItem('intake_return') === '1'
-          ? '<a class="btn primary" href="intake.html#step-4">問診へ戻る（Step4へ）→</a>' : ''}
+        ${(window.self !== window.top)
+          ? '<button class="btn primary" id="diff-continue">問診の続き（Step4）へ →</button>'
+          : (localStorage.getItem('intake_return') === '1'
+            ? '<a class="btn primary" href="intake.html#step-4">問診へ戻る（Step4へ）→</a>' : '')}
         <button class="btn" id="restart">最初からやり直す</button>
       </div>
     </section>`;
   document.getElementById('restart').addEventListener('click', restart);
+  const cont = document.getElementById('diff-continue');
+  if (cont) cont.addEventListener('click', () => {
+    try { window.parent.postMessage({ type: 'intake-continue' }, '*'); } catch (e) {}
+  });
 }
 
 function restart() {
