@@ -120,7 +120,9 @@ function renderFindings() {
 function effectiveSeverity(s) {
   const d = s.disease;
   if (d.severity_conditional) {
-    const acute = (s.hits || []).some(h => h.ans === 'pos' && (h.sign.includes('急性') || h.sign.includes('激痛')));
+    // 急性期マーカーはデータ側 acute_markers を優先（将来疾患でも判定が漏れないように）。
+    const markers = (d.acute_markers && d.acute_markers.length) ? d.acute_markers : ['急性', '激痛'];
+    const acute = (s.hits || []).some(h => h.ans === 'pos' && markers.some(m => h.sign.includes(m)));
     return acute ? d.severity_conditional['急性期'] : d.severity_conditional['慢性期'];
   }
   // 経過観察トラック：レッドフラッグ所見が指定数以上揃えば格上げ
@@ -318,9 +320,9 @@ function esParamsText(id) {
   if (!ps.length) return '';
   return ps.map(p => {
     if (p.frequency_variants) {
-      // step5の痛みタイプ（情動/天候）から受容体→周波数を逆引き（無ければμデフォルト）
-      const v = dp => state.levelAnswers && false; // levelAnswersは高位診断用なので未使用
-      const variant = p.frequency_variants[0]; // 結果画面ではμデフォルト（詳細選択はカルテ側step5連動）
+      // 結果画面はμ（βエンドルフィン）デフォルト固定。痛みタイプ連動の周波数選択は
+      // カルテ側 karte.js の pickDescVariant が step5（情動/天候）から行う。
+      const variant = p.frequency_variants[0];
       return `${variant.frequency_hz}・${p.intensity}・${variant.time_min}分（${variant.opioid || ''}/${variant.receptor || ''}）`;
     }
     return `${p.frequency_hz}・${p.intensity}・${p.time_min}分${p.site ? '（' + p.site + '）' : ''}`;

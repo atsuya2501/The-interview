@@ -107,6 +107,7 @@
         "急性期": "緊急",
         "慢性期": "要注意"
       },
+      "acute_markers": ["激痛", "急性"],
       "findings": {
         "confirm": [
           { "sign": "激痛（急性期）", "lr": null, "rank": 2 }
