@@ -277,6 +277,31 @@ function prefillFromEngine() {
     set('step3_disease.pain_location_and_state',
       `${data.region || ''}（${data.branch || ''}）｜陽性所見：${data.positive_findings.join('、')}`, true);
   }
+  // 鑑別の徒手検査(陽性/陰性)を「疾患を把握する」の各検査欄へキーワード振り分け（空欄のみ）
+  // 順序が優先度：病的反射→腱反射 のように先に来た route を採用。
+  const EXAM_ROUTES = [
+    { kw: ['病的反射', 'ホフマン', 'トレムナー', 'ワルテンベルグ'], path: 'step3_disease.exam_physical.pathological_reflex' },
+    { kw: ['バレー'], path: 'step3_disease.exam_physical.balre_sign' },
+    { kw: ['回内', '回外'], path: 'step3_disease.exam_physical.pronation_supination' },
+    { kw: ['反射'], path: 'step3_disease.exam_spinal.reflex' },
+    { kw: ['筋力'], path: 'step3_disease.exam_spinal.muscle_strength' },
+    { kw: ['感覚', '知覚', 'しびれ', 'デルマトーム'], path: 'step3_disease.exam_spinal.sensory' },
+    { kw: ['叩打'], path: 'step3_disease.exam_bone.percussion_pain' },
+    { kw: ['熱感'], path: 'step3_disease.exam_joint.heat' },
+    { kw: ['腫脹', '腫れ', '浮腫'], path: 'step3_disease.exam_joint.swelling' },
+    { kw: ['発赤'], path: 'step3_disease.exam_joint.redness' },
+    { kw: ['可動域', 'ROM', '屈曲', '伸展', '外転', '開口', '背屈', '底屈', '前屈', '後屈'], path: 'step3_disease.exam_joint.rom_test' },
+    { kw: ['圧痛', '硬結', 'トリガー'], path: 'step3_disease.exam_muscle.tenderness' }
+  ];
+  if (data.findings_detail && data.findings_detail.length) {
+    const acc = {};
+    data.findings_detail.forEach(f => {
+      const r = EXAM_ROUTES.find(r => r.kw.some(k => f.sign.includes(k)));
+      if (!r) return;
+      (acc[r.path] = acc[r.path] || []).push(`${f.sign}（${f.ans === 'pos' ? '陽性' : '陰性'}）`);
+    });
+    Object.keys(acc).forEach(p => set(p, acc[p].join(' / '), true));
+  }
   return data;
 }
 
