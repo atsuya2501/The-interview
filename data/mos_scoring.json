@@ -1,0 +1,46 @@
+{
+  "schema_name": "mos_scoring",
+  "version": "1.0",
+  "description": "MOS弁証スコア計算(表-a)＋弁証プロフィール軸スケール(p.598)。M/Fスケール分岐確定版。",
+  "scale_input": {
+    "常にある": 2, "時々ある": 1, "ない": 0,
+    "note": "各section内の問の点数を合計し、表-aの式で証スコアを算出。"
+  },
+  "scale_selection": {
+    "F": "月経のある女性。L項目(49-51)を回答・加算し、Fスケールで正規化。",
+    "M": "それ以外。L項目は0点扱い、Mスケールで正規化。",
+    "logic": "is_female && has_menstruation ? 'F' : 'M'"
+  },
+  "formulas": {
+    "肝":   {"formula": "A + L49 + L50",        "axis_max": {"M": 12, "F": 16}},
+    "心":   {"formula": "B",                      "axis_max": {"M": 12, "F": 12}},
+    "脾":   {"formula": "C",                      "axis_max": {"M": 12, "F": 12}},
+    "肺":   {"formula": "D",                      "axis_max": {"M": 12, "F": 12}},
+    "腎":   {"formula": "E",                      "axis_max": {"M": 12, "F": 12}},
+    "気虚": {"formula": "F + B9 + D20",           "axis_max": {"M": 8,  "F": 8}},
+    "陽虚": {"formula": "G",                      "axis_max": {"M": 6,  "F": 6}},
+    "陰虚": {"formula": "H",                      "axis_max": {"M": 6,  "F": 6}},
+    "血虚": {"formula": "I + A3 + A4 + L50",      "axis_max": {"M": 10, "F": 12}},
+    "気滞": {"formula": "J + A5",                 "axis_max": {"M": 8,  "F": 8}},
+    "血瘀": {"formula": "K + L49 + L51",          "axis_max": {"M": 6,  "F": 10}}
+  },
+  "item_resolution": {
+    "note": "式中の A,B...K はsection合計。A3,A4,A5,B9,D20,L49,L50,L51 は個別問の点数(0-2)。判定表で個別に書き出す指定問。",
+    "section_sums": ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K"],
+    "individual_items": ["A3", "A4", "A5", "B9", "D20", "L49", "L50", "L51"],
+    "L_items_zero_if_M": "Mスケール時はL49/L50/L51を0として計算。"
+  },
+  "profile_output": {
+    "type": "horizontal_bar",
+    "title": "弁証プロフィール",
+    "scale_note": "各軸0〜axis_max(M/Fで切替)で実点をプロット。%換算軸も併記可(0-100%)。",
+    "axes_order": ["肝", "心", "脾", "肺", "腎", "気虚", "陽虚", "陰虚", "血虚", "気滞", "血瘀"],
+    "dual_scale_axes": ["肝", "血虚", "血瘀"],
+    "dual_scale_note": "肝・血虚・血瘀はM/Fで軸長が異なる(L項目加算ぶん)。選択スケールに応じて正規化。",
+    "philosophy": "確定証でなく全11軸のプロファイル提示。最も高い軸が主証の示唆。西洋アプリの示唆思想と一貫。"
+  },
+  "treatment_link": {
+    "_placeholder": "各証→使用ツボは後送資料でtcm_treatment_points.jsonに追加。",
+    "future_file": "tcm_treatment_points.json"
+  }
+}

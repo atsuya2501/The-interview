@@ -47,6 +47,18 @@ header h1 small { font-size: .7rem; font-weight: 500; opacity: .8; }
 .dur { width: 6rem; border: 1px solid var(--border); border-radius: 8px; padding: .4rem .5rem; font: inherit; }
 .birth-row select { flex: 1; border: 1px solid var(--border); border-radius: 8px; padding: .45rem .4rem; font: inherit; font-size: .88rem; }
 
+/* MOS 弁証 */
+.mos-section h3 { font-size: .95rem; color: var(--primary); }
+.mos-q { padding: .5rem 0; border-bottom: 1px dashed var(--border); }
+.mos-qno { display: inline-block; min-width: 1.8rem; font-size: .72rem; font-weight: 700; color: var(--muted); }
+.mos-qtext { font-size: .9rem; }
+.mos-opts { display: flex; gap: .9rem; margin: .3rem 0 0 1.8rem; flex-wrap: wrap; }
+.mos-row { display: flex; align-items: center; gap: .6rem; margin: .35rem 0; }
+.mos-row.mos-top .mos-axis { color: var(--accent); }
+.mos-axis { width: 3rem; font-weight: 700; font-size: .85rem; }
+.mos-row .bar { flex: 1; margin: 0; }
+.mos-score { width: 3rem; text-align: right; font-size: .78rem; color: var(--muted); }
+
 /* progress log */
 .pl-entry { border: 1px solid var(--border); border-radius: 8px; padding: .5rem .6rem; margin-top: .5rem; position: relative; }
 .pl-meta { font-size: .76rem; font-weight: 700; color: var(--accent); margin-bottom: .2rem; }
