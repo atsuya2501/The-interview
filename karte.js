@@ -269,7 +269,14 @@ function prefillFromEngine() {
   set(`${base}.branch`, data.branch);
   set(`${base}.confirmed_disease`, data.confirmed_disease);
   set(`${base}.differential_candidates`, data.differential_candidates);
-  set(`${base}.cause_tissue`, data.cause_tissue);
+  // cause_tissue: engine_output に無ければ問診の予想組織(step2 チェック済み)で補完。
+  // restoreForm() 後に呼ばれるため step2 のチェック状態を参照できる。
+  let causeTissue = data.cause_tissue;
+  if (causeTissue == null || causeTissue === '' || (Array.isArray(causeTissue) && !causeTissue.length)) {
+    const picked = [...document.querySelectorAll('[data-path="step2_tissue_prediction.predicted_tissue"]:checked')].map(e => e.value);
+    if (picked.length) causeTissue = picked;
+  }
+  set(`${base}.cause_tissue`, causeTissue);
   set(`${base}.treatment_track`, data.treatment_track);
   set('profile.diagnosis_name', data.confirmed_disease, true);
   // 鑑別の陽性所見を「部位と痛みの性状」へ転記（空のときのみ）
@@ -506,6 +513,34 @@ function buildPatientScript() {
   }
 }
 
+// MOS弁証の確定証（mos_bianzheng_result）をカルテに流し込み（証・選穴・手技の表示カード）
+function buildBianzhengCard() {
+  const existing = document.getElementById('bz-karte-card');
+  if (existing) existing.remove();
+  let data; try { data = JSON.parse(localStorage.getItem('mos_bianzheng_result') || 'null'); } catch (e) {}
+  if (!data || !data.syndrome) return;
+
+  const pts = (data.points_detail && data.points_detail.length)
+    ? data.points_detail
+    : (data.points || []).map(n => ({ name: n }));
+  const ptHtml = pts.map(p =>
+    `<span class="bz-point">${escapeHtml(p.name)}${p.code && p.code !== '—' ? `<small>${escapeHtml(p.code)}</small>` : ''}</span>`).join('');
+
+  const card = document.createElement('section');
+  card.className = 'card';
+  card.id = 'bz-karte-card';
+  card.innerHTML = `<h2>東洋医学的弁証（MOS）</h2>
+    <p class="hint">MOSスコア→証候候補から選択した証（確定証ではなく示唆）。${data.saved_at ? escapeHtml(data.saved_at) : ''}</p>
+    <div class="k-field"><span class="k-label">証</span><div><b>${escapeHtml(data.syndrome)}</b> <span class="tag light">${escapeHtml(data.group || '')}</span></div></div>
+    <div class="bz-points" style="margin:.5rem 0"><b>選穴例</b> ${ptHtml}</div>
+    <div class="k-field"><span class="k-label">手技</span><div>${escapeHtml(data.technique || '')}</div></div>`;
+
+  // 直下の最終 .actions（印刷バー）の前に挿入（buildPatientScript と同型）
+  const directActions = [...app().children].filter(el => el.classList && el.classList.contains('actions'));
+  const anchor = directActions[directActions.length - 1];
+  if (anchor) app().insertBefore(card, anchor); else app().appendChild(card);
+}
+
 async function init() {
   try {
     const [karte, tcm, stim, tmech, tmaster, electro, pscripts] = await Promise.all([
@@ -546,6 +581,7 @@ async function init() {
     updateStimulus();
     buildTreatmentSuggest();
     buildPatientScript();
+    buildBianzhengCard();
 
     // 経過記録：日付デフォルト＝本日、追加ボタン、一覧描画
     const plDate = document.getElementById('pl-date');
@@ -580,7 +616,8 @@ async function init() {
       const nameInput = document.getElementById('rec-name').value.trim();
       const profName = (document.querySelector('[data-path="profile.name"]') || {}).value || '';
       const name = nameInput || profName || ('カルテ' + (Object.keys(recs).length + 1));
-      recs[id] = { name, at: new Date().toLocaleString('ja-JP'), data: serializeForm() };
+      let bz = null; try { bz = localStorage.getItem('mos_bianzheng_result'); } catch (e) {}
+      recs[id] = { name, at: new Date().toLocaleString('ja-JP'), data: serializeForm(), bianzheng: bz };
       storeRecords(recs);
       refreshRecordList();
       document.getElementById('rec-list').value = id;
@@ -593,6 +630,8 @@ async function init() {
       const recs = loadRecords();
       if (!recs[id]) return;
       applyData(recs[id].data);
+      try { recs[id].bianzheng ? localStorage.setItem('mos_bianzheng_result', recs[id].bianzheng) : localStorage.removeItem('mos_bianzheng_result'); } catch (e) {}
+      buildBianzhengCard();
       saveForm();
       alert(`「${recs[id].name}」を呼び出しました。`);
     });
@@ -610,7 +649,8 @@ async function init() {
     // 書き出し（現在の下書き＋保存済み全件＋直近エンジン出力をJSONで保存）
     document.getElementById('rec-export').addEventListener('click', () => {
       let eng = null; try { eng = JSON.parse(localStorage.getItem('karte_engine_output') || 'null'); } catch (e) {}
-      const bundle = { schema: 'karte_export', version: 1, exported_at: new Date().toISOString(), form: serializeForm(), records: loadRecords(), engine_output: eng };
+      let bz = null; try { bz = JSON.parse(localStorage.getItem('mos_bianzheng_result') || 'null'); } catch (e) {}
+      const bundle = { schema: 'karte_export', version: 1, exported_at: new Date().toISOString(), form: serializeForm(), records: loadRecords(), engine_output: eng, mos_bianzheng: bz };
       const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -627,6 +667,7 @@ async function init() {
           const b = JSON.parse(reader.result);
           if (b.records) { const cur = loadRecords(); storeRecords(Object.assign(cur, b.records)); refreshRecordList(); }
           if (b.engine_output) localStorage.setItem('karte_engine_output', JSON.stringify(b.engine_output));
+          if (b.mos_bianzheng) { localStorage.setItem('mos_bianzheng_result', JSON.stringify(b.mos_bianzheng)); buildBianzhengCard(); }
           if (b.form) { applyData(b.form); saveForm(); }
           alert('読み込みました（保存済みカルテはマージ）。');
         } catch (err) { alert('読み込みに失敗しました：' + err.message); }

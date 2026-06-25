@@ -113,6 +113,18 @@ function deriveAndWrite() {
   q23.forEach(a => collect(hintFor('q2_3'), a));
   if (tissues.size) out['step2_tissue_prediction.predicted_tissue'] = [...tissues];
 
+  // 予想組織を鑑別エンジン出力(engine_output)にも橋渡し → カルテ「原因組織」へ流れる。
+  // 鑑別エンジンは疾患マスタに組織情報を持たず cause_tissue=null で来るため、ここで補完する。
+  if (tissues.size) {
+    try {
+      const eng = JSON.parse(localStorage.getItem('karte_engine_output') || 'null');
+      if (eng && (eng.cause_tissue == null || (Array.isArray(eng.cause_tissue) && !eng.cause_tissue.length))) {
+        eng.cause_tissue = [...tissues];
+        localStorage.setItem('karte_engine_output', JSON.stringify(eng));
+      }
+    } catch (e) {}
+  }
+
   // Step4: レッドフラッグ
   const rfDefs = FLOW.flow.find(s => s.step === 4).questions;
   let rfFlags = [];
