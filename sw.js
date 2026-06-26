@@ -1,4 +1,4 @@
-const CACHE = 'itami-kanbe-v47';
+const CACHE = 'itami-kanbe-v48';
 const ASSETS = [
   '/',
   '/index.html',
@@ -44,8 +44,9 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', e => {
+  // 一部アセットが404でも install を失敗させない（プロジェクトページ等の絶対パスずれ対策）
   e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(ASSETS))
+    caches.open(CACHE).then(c => Promise.allSettled(ASSETS.map(a => c.add(a))))
   );
   self.skipWaiting();
 });
@@ -59,8 +60,25 @@ self.addEventListener('activate', e => {
   self.clients.claim();
 });
 
+// network-first：オンラインなら常に最新を取得しキャッシュ更新、失敗時のみキャッシュへフォールバック。
+// → 通常リロード1回で更新が反映。オフラインでもキャッシュで動作。
 self.addEventListener('fetch', e => {
+  const req = e.request;
+  if (req.method !== 'GET') return;
+  const url = new URL(req.url);
+  if (url.origin !== self.location.origin) return; // 外部リソースは介入しない
   e.respondWith(
-    caches.match(e.request).then(cached => cached ?? fetch(e.request))
+    fetch(req)
+      .then(res => {
+        if (res && res.status === 200 && res.type === 'basic') {
+          const copy = res.clone();
+          caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {});
+        }
+        return res;
+      })
+      .catch(() => caches.match(req).then(cached =>
+        cached || (req.mode === 'navigate'
+          ? caches.match('index.html').then(x => x || caches.match('/index.html'))
+          : undefined)))
   );
 });
