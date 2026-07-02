@@ -9,6 +9,7 @@ const app = () => document.getElementById('intake');
 const FORM_KEY = 'karte_form_data';
 const INTAKE_KEY = 'intake_answers';
 let FLOW = null, KARTE = null;
+let LAST_LEVEL_BASIS = ''; // Step5 痛みレベルの得点内訳（完了画面で根拠表示）
 
 // 問診の回答を保存／復元（再開できるように）
 function saveIntake() {
@@ -100,26 +101,28 @@ function deriveAndWrite() {
   if (q21) out['step2_tissue_prediction.pain_quality'] = enumMatch(s2, 'pain_quality', q21);
   if (q22) out['step2_tissue_prediction.pain_range'] = enumMatch(s2, 'pain_range', q22);
   if (q23.length) out['step2_tissue_prediction.aggravation_factor'] = q23.join(' / ');
-  // tissue_hint 集計
+  // tissue_hint 集計：和集合ではなく、ヒント頻度でランク付け（複数の回答が指す組織ほど上位＝最も疑わしい）
   const hintFor = (qid) => (FLOW.flow.flatMap(st => st.questions || []).find(q => q.id === qid) || {}).tissue_hint || {};
-  const tissues = new Set();
+  const tissueScore = {};
   const collect = (hint, ans) => {
     if (!ans) return;
     const key = Object.keys(hint).find(k => ans === k || ans.startsWith(k) || ans.includes(k));
-    if (key) hint[key].forEach(t => tissues.add(tissueBase(t)));
+    if (key) hint[key].forEach(t => { const b = tissueBase(t); tissueScore[b] = (tissueScore[b] || 0) + 1; });
   };
   collect(hintFor('q2_1'), q21);
   collect(hintFor('q2_2'), q22);
   q23.forEach(a => collect(hintFor('q2_3'), a));
-  if (tissues.size) out['step2_tissue_prediction.predicted_tissue'] = [...tissues];
+  const rankedTissues = Object.keys(tissueScore)
+    .sort((a, b) => (tissueScore[b] - tissueScore[a]) || a.localeCompare(b, 'ja'));
+  if (rankedTissues.length) out['step2_tissue_prediction.predicted_tissue'] = rankedTissues;
 
   // 予想組織を鑑別エンジン出力(engine_output)にも橋渡し → カルテ「原因組織」へ流れる。
-  // 鑑別エンジンは疾患マスタに組織情報を持たず cause_tissue=null で来るため、ここで補完する。
-  if (tissues.size) {
+  // 鑑別エンジンは疾患マスタに組織情報を持たず cause_tissue=null で来るため、ここで補完する（頻度順）。
+  if (rankedTissues.length) {
     try {
       const eng = JSON.parse(localStorage.getItem('karte_engine_output') || 'null');
       if (eng && (eng.cause_tissue == null || (Array.isArray(eng.cause_tissue) && !eng.cause_tissue.length))) {
-        eng.cause_tissue = [...tissues];
+        eng.cause_tissue = rankedTissues;
         localStorage.setItem('karte_engine_output', JSON.stringify(eng));
       }
     } catch (e) {}
@@ -145,22 +148,31 @@ function deriveAndWrite() {
     if (rfFlags.length) out['step4_red_flag.content'] = rfFlags.join(' / ');
   }
 
-  // Step5: 痛みのレベル
+  // Step5: 痛みのレベル（末梢/脊髄/脳）
+  // 「脳の票が1つでもあれば脳」ではなく重み付きスコアで判定。
+  // 痛みの分布(q5_1)は最も本質的な指標なので重み2、その他は重み1。同点は高位を採用（中枢性の見落とし回避）。
   const lvDefs = FLOW.flow.find(s => s.step === 5).questions;
-  const levelVotes = new Set();
+  const levelScore = { '末梢神経レベル': 0, '脊髄レベル': 0, '脳レベル': 0 };
+  let levelAnswered = false;
   lvDefs.forEach(q => {
     const key = q.karte_field;
+    const w = q.id === 'q5_1' ? 2 : 1;
     if (q.input_type === 'single_select') {
       const v = radioVal(q.id);
-      if (v) { out[key] = v; if (q.level_map && q.level_map[v]) levelVotes.add(q.level_map[v]); }
+      if (v) { out[key] = v; levelAnswered = true; if (q.level_map && q.level_map[v]) levelScore[q.level_map[v]] += w; }
     } else if (q.input_type === 'boolean') {
       out[key] = radioVal(q.id) || '';
-      if (boolYes(q.id) && q.level_if_yes) q.level_if_yes.forEach(l => levelVotes.add(l));
+      if (radioVal(q.id) !== null) levelAnswered = true;
+      if (boolYes(q.id) && q.level_if_yes) q.level_if_yes.forEach(l => { if (l in levelScore) levelScore[l] += w; });
     }
   });
-  if (levelVotes.size) {
-    out['step5_pain_level.level'] = levelVotes.has('脳レベル') ? '脳レベル'
-      : levelVotes.has('脊髄レベル') ? '脊髄レベル' : '末梢神経レベル';
+  if (levelAnswered) {
+    const order = ['末梢神経レベル', '脊髄レベル', '脳レベル'];
+    let best = order[0];
+    order.forEach(l => { if (levelScore[l] >= levelScore[best]) best = l; }); // 同点は高位優先
+    out['step5_pain_level.level'] = best;
+    LAST_LEVEL_BASIS = order.filter(l => levelScore[l] > 0)
+      .map(l => `${l.replace('レベル', '')}:${levelScore[l]}`).join(' / ');
   }
 
   // Step6: イエローフラッグ
@@ -255,6 +267,7 @@ async function init() {
       sm.innerHTML = keys.length
         ? `<p class="lead">カルテに反映しました。</p><ul class="hit-list">${keys.map(k =>
             `<li><span>${k.split('.').pop()}</span><span>${Array.isArray(out[k]) ? out[k].join('・') : out[k]}</span></li>`).join('')}</ul>
+           ${LAST_LEVEL_BASIS ? `<p class="hint">痛みレベルの得点内訳：${LAST_LEVEL_BASIS}（判定：${out['step5_pain_level.level'] || '—'}）</p>` : ''}
            <div class="actions"><a class="btn primary" href="karte.html">🗂 カルテを開く →</a></div>`
         : `<p class="lead">回答が少なく反映項目はありません。</p><div class="actions"><a class="btn" href="karte.html">🗂 カルテを開く</a></div>`;
       try { localStorage.removeItem('intake_step'); } catch (e) {}
