@@ -45,6 +45,7 @@ header h1 small { font-size: .7rem; font-weight: 500; opacity: .8; }
 .opt-row { display: flex; gap: 1rem; align-items: center; }
 .opt-col { display: flex; flex-direction: column; gap: .35rem; }
 .dur { width: 6rem; border: 1px solid var(--border); border-radius: 8px; padding: .4rem .5rem; font: inherit; }
+.dur-unit { border: 1px solid var(--border); border-radius: 8px; padding: .4rem .5rem; font: inherit; background: #fff; }
 .birth-row select { flex: 1; border: 1px solid var(--border); border-radius: 8px; padding: .45rem .4rem; font: inherit; font-size: .88rem; }
 
 /* MOS 弁証 */

@@ -10,6 +10,9 @@ const FORM_KEY = 'karte_form_data';
 const INTAKE_KEY = 'intake_answers';
 let FLOW = null, KARTE = null;
 let LAST_LEVEL_BASIS = ''; // Step5 痛みレベルの得点内訳（完了画面で根拠表示）
+let LAST_ACUTE_PHASE = '';    // Step1 急性の層別（超急性/急性/亜急性）
+let LAST_REDFLAG_TIER = '';   // Step4 レッドフラッグの危険度サマリ
+let LAST_TISSUE_WARNING = ''; // Step2予想組織 と 鑑別治療方針 の不一致警告
 
 // 問診の回答を保存／復元（再開できるように）
 function saveIntake() {
@@ -19,6 +22,7 @@ function saveIntake() {
     else if (el.type === 'checkbox') { if (el.checked) (a[el.name] = a[el.name] || []).push(el.value); }
     else if (el.type === 'number') { if (el.value) a[el.id] = el.value; }
   });
+  app().querySelectorAll('select').forEach(el => { if (el.id && el.value) a[el.id] = el.value; });
   try { localStorage.setItem(INTAKE_KEY, JSON.stringify(a)); } catch (e) {}
 }
 function restoreIntake() {
@@ -26,8 +30,8 @@ function restoreIntake() {
   if (!a) return;
   Object.keys(a).forEach(k => {
     const v = a[k];
-    const numEl = document.getElementById(k);
-    if (numEl && numEl.type === 'number') { numEl.value = v; return; }
+    const byId = document.getElementById(k);
+    if (byId && (byId.type === 'number' || byId.tagName === 'SELECT')) { byId.value = v; return; }
     app().querySelectorAll(`[name="${k}"]`).forEach(el => {
       if (el.type === 'radio') el.checked = (el.value === v);
       else if (el.type === 'checkbox') { if (Array.isArray(v) && v.includes(el.value)) el.checked = true; }
@@ -51,7 +55,8 @@ function qInput(q) {
       <label class="k-check"><input type="radio" name="${id}" value="いいえ"> いいえ</label></div>`;
   }
   if (q.input_type === 'duration') {
-    return `<div class="opt-row"><input type="number" min="0" id="${id}" class="dur" placeholder="数値"> <span>ヶ月</span></div>`;
+    return `<div class="opt-row"><input type="number" min="0" id="${id}" class="dur" placeholder="数値">
+      <select id="${id}_unit" class="dur-unit"><option value="日">日</option><option value="週">週</option><option value="ヶ月" selected>ヶ月</option></select></div>`;
   }
   if (q.input_type === 'single_select') {
     return `<div class="opt-col">${q.options.map(o => `<label class="k-check"><input type="radio" name="${id}" value="${o}"> ${o}</label>`).join('')}</div>`;
@@ -86,13 +91,18 @@ function boolYes(id) { return radioVal(id) === 'はい'; }
 function deriveAndWrite() {
   const out = {};
   const kp = KARTE; // セクションごとの enum 参照用
+  LAST_LEVEL_BASIS = LAST_ACUTE_PHASE = LAST_REDFLAG_TIER = LAST_TISSUE_WARNING = '';
 
-  // Step1: 急性/慢性
+  // Step1: 急性/慢性（単位 日/週/ヶ月 に対応。月換算で分類し、急性期の層別も残す）
   const dur = document.getElementById('q1_1');
   if (dur && dur.value !== '') {
-    const m = Number(dur.value);
-    out['step1_acute_chronic.pain_duration'] = m + 'ヶ月';
-    out['step1_acute_chronic.classification'] = m <= 3 ? '急性(3ヶ月以下)' : '慢性(3ヶ月以上)';
+    const n = Number(dur.value);
+    const unit = (document.getElementById('q1_1_unit') || {}).value || 'ヶ月';
+    const months = unit === '日' ? n / 30 : unit === '週' ? n * 7 / 30 : n;
+    out['step1_acute_chronic.pain_duration'] = n + unit;
+    out['step1_acute_chronic.classification'] = months <= 3 ? '急性(3ヶ月以下)' : '慢性(3ヶ月以上)';
+    // 急性の中の層別（治療方針が変わるため保持）
+    LAST_ACUTE_PHASE = months > 3 ? '' : (months <= 1 / 7 ? '超急性期(48時間以内目安)' : months <= 0.5 ? '急性期' : months <= 3 ? '亜急性期' : '');
   }
 
   // Step2: 予想組織
@@ -128,24 +138,44 @@ function deriveAndWrite() {
     } catch (e) {}
   }
 
-  // Step4: レッドフラッグ
+  // ③ 問診の予想組織 と 鑑別エンジンの治療方針 の整合チェック（矛盾を見落とさない）
+  if (rankedTissues.length) {
+    try {
+      const eng = JSON.parse(localStorage.getItem('karte_engine_output') || 'null');
+      const track = eng && eng.treatment_track;
+      const EXPECT = { '局所筋骨格': ['筋肉', '骨', '関節', '靭帯'], '神経系': ['神経'], '心理社会的': ['精神'], '自律神経': ['内臓', '精神'] };
+      if (track && EXPECT[track]) {
+        const top = rankedTissues[0];
+        if (!EXPECT[track].includes(top)) {
+          LAST_TISSUE_WARNING = `問診の予想組織（${rankedTissues.slice(0, 2).join('・')}）と鑑別の治療方針（${track}）が一致しません。再確認を推奨します。`;
+        }
+      }
+    } catch (e) {}
+  }
+
+  // Step4: レッドフラッグ（危険度で重み付け → 要緊急受診 / 要注意 の段階サマリ）
+  // 膀胱直腸障害(q4_6)=馬尾、運動障害(q4_2)=神経障害、48時間以上進行(q4_5)=進行性 は緊急度が高い。
+  const URGENT_RF = new Set(['q4_2', 'q4_5', 'q4_6']);
   const rfDefs = FLOW.flow.find(s => s.step === 4).questions;
   let rfFlags = [];
+  let urgentHit = false;
   rfDefs.forEach(q => {
     const key = q.karte_field;
     if (q.input_type === 'boolean') {
       const yes = boolYes(q.id);
       out[key] = radioVal(q.id) || '';
-      if (yes && q.flag_if_yes) rfFlags.push(q.flag_if_yes);
+      if (yes && q.flag_if_yes) { rfFlags.push(q.flag_if_yes); if (URGENT_RF.has(q.id)) urgentHit = true; }
     } else if (q.input_type === 'single_select') {
       const v = radioVal(q.id);
       if (v) out[key] = v;
-      if (v && q.flag_if && q.flag_if[v]) rfFlags.push(q.flag_if[v]);
+      if (v && q.flag_if && q.flag_if[v]) { rfFlags.push(q.flag_if[v]); if (URGENT_RF.has(q.id)) urgentHit = true; }
     }
   });
   if (rfDefs.some(q => radioVal(q.id) !== null)) {
     out['step4_red_flag.present'] = rfFlags.length ? 'あり' : 'なし';
-    if (rfFlags.length) out['step4_red_flag.content'] = rfFlags.join(' / ');
+    LAST_REDFLAG_TIER = !rfFlags.length ? '経過可（レッドフラッグなし）'
+      : urgentHit ? '🔴 要緊急受診' : '🟡 要注意';
+    if (rfFlags.length) out['step4_red_flag.content'] = `【${urgentHit ? '要緊急受診' : '要注意'}】` + rfFlags.join(' / ');
   }
 
   // Step5: 痛みのレベル（末梢/脊髄/脳）
@@ -267,7 +297,10 @@ async function init() {
       sm.innerHTML = keys.length
         ? `<p class="lead">カルテに反映しました。</p><ul class="hit-list">${keys.map(k =>
             `<li><span>${k.split('.').pop()}</span><span>${Array.isArray(out[k]) ? out[k].join('・') : out[k]}</span></li>`).join('')}</ul>
+           ${LAST_ACUTE_PHASE ? `<p class="hint">急性期の層別：${LAST_ACUTE_PHASE}</p>` : ''}
+           ${LAST_REDFLAG_TIER ? `<p class="hint">レッドフラッグ危険度：${LAST_REDFLAG_TIER}</p>` : ''}
            ${LAST_LEVEL_BASIS ? `<p class="hint">痛みレベルの得点内訳：${LAST_LEVEL_BASIS}（判定：${out['step5_pain_level.level'] || '—'}）</p>` : ''}
+           ${LAST_TISSUE_WARNING ? `<div class="alert yellow"><strong>⚠ 組織予想と鑑別の不一致</strong><p>${LAST_TISSUE_WARNING}</p></div>` : ''}
            <div class="actions"><a class="btn primary" href="karte.html">🗂 カルテを開く →</a></div>`
         : `<p class="lead">回答が少なく反映項目はありません。</p><div class="actions"><a class="btn" href="karte.html">🗂 カルテを開く</a></div>`;
       try { localStorage.removeItem('intake_step'); } catch (e) {}
