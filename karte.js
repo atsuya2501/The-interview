@@ -315,21 +315,74 @@ function prefillFromEngine() {
 // ---- 複数カルテの保存／呼び出し ----
 function loadRecords() { try { return JSON.parse(localStorage.getItem(RECORDS_KEY) || '{}'); } catch (e) { return {}; } }
 function storeRecords(r) { try { localStorage.setItem(RECORDS_KEY, JSON.stringify(r)); } catch (e) {} }
+let ACTIVE_KANA_ROW = ''; // '' = すべて
 function refreshRecordList() {
   const sel = document.getElementById('rec-list');
   if (!sel) return;
   const recs = loadRecords();
-  const ids = Object.keys(recs).sort((a, b) => Number(b) - Number(a));
-  sel.innerHTML = ['<option value="">— 保存済みカルテを選択 —</option>']
-    .concat(ids.map(id => `<option value="${id}">${recs[id].name}（${recs[id].at}）</option>`)).join('');
+  // よみ（無ければ名前）の五十音順 → 同行内は保存日時降順
+  let ids = Object.keys(recs).sort((a, b) => {
+    const ra = kanaRowOf(recs[a].yomi || recs[a].name) || '';
+    const rb = kanaRowOf(recs[b].yomi || recs[b].name) || '';
+    if (ra !== rb) return ra.localeCompare(rb, 'ja');
+    return Number(b) - Number(a);
+  });
+  if (ACTIVE_KANA_ROW) ids = ids.filter(id => kanaRowOf(recs[id].yomi || recs[id].name) === ACTIVE_KANA_ROW);
+
+  if (!ids.length) {
+    sel.innerHTML = `<option value="">（${ACTIVE_KANA_ROW ? ACTIVE_KANA_ROW + '行に' : ''}該当するカルテがありません）</option>`;
+    return;
+  }
+  let html = '';
+  let lastRow = null;
+  ids.forEach(id => {
+    const row = kanaRowOf(recs[id].yomi || recs[id].name) || '？';
+    if (row !== lastRow) { html += `<option value="" disabled>─ ${row}行 ─</option>`; lastRow = row; }
+    html += `<option value="${id}">${recs[id].name}（${recs[id].at}）</option>`;
+  });
+  sel.innerHTML = html;
+}
+
+// 五十音の行インデックス（濁音・半濁音・小書きは清音の行に丸める）
+const KANA_ROWS = [
+  { row: 'あ', chars: 'あいうえおぁぃぅぇぉ' },
+  { row: 'か', chars: 'かきくけこがぎぐげご' },
+  { row: 'さ', chars: 'さしすせそざじずぜぞ' },
+  { row: 'た', chars: 'たちつてとだぢづでどっ' },
+  { row: 'な', chars: 'なにぬねの' },
+  { row: 'は', chars: 'はひふへほばびぶべぼぱぴぷぺぽ' },
+  { row: 'ま', chars: 'まみむめも' },
+  { row: 'や', chars: 'やゆよゃゅょ' },
+  { row: 'ら', chars: 'らりるれろ' },
+  { row: 'わ', chars: 'わをんゎ' }
+];
+// カタカナ→ひらがな正規化（濁点・半濁点はUnicode正規化で分解される場合があるため簡易マップ）
+function toHiragana(s) {
+  return String(s || '').replace(/[ァ-ヶ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60));
+}
+// よみ（ひらがな/カタカナ）先頭文字 → 五十音の行
+function kanaRowOf(yomi) {
+  const h = toHiragana(yomi).trim();
+  if (!h) return null;
+  const c = h[0];
+  const hit = KANA_ROWS.find(r => r.chars.includes(c));
+  return hit ? hit.row : null;
 }
 
 function buildControls() {
+  const rowChips = KANA_ROWS.map(r => `<button type="button" class="btn kana-chip" data-row="${r.row}">${r.row}</button>`).join('');
   return `<section class="card">
     <h2>カルテ保存 / 呼び出し</h2>
-    <div class="k-field"><span class="k-label">保存名</span><input id="rec-name" type="text" placeholder="氏名・日付など（空なら自動）"></div>
+    <div class="k-field"><span class="k-label">保存名（氏名など）</span><input id="rec-name" type="text" placeholder="氏名・日付など（空なら自動）"></div>
+    <div class="k-field"><span class="k-label">よみ（ひらがな・五十音検索用）</span><input id="rec-yomi" type="text" placeholder="例：やまだたろう"></div>
     <div class="actions" style="margin-top:.4rem"><button class="btn primary" id="rec-save">💾 現在の内容を保存</button></div>
-    <div class="k-field" style="margin-top:.6rem"><span class="k-label">保存済みカルテ</span><select id="rec-list"></select></div>
+    <div class="k-field" style="margin-top:.6rem"><span class="k-label">五十音で絞り込み</span>
+      <div class="kana-chips">
+        <button type="button" class="btn kana-chip on" data-row="">すべて</button>
+        ${rowChips}
+      </div>
+    </div>
+    <div class="k-field"><span class="k-label">保存済みカルテ</span><select id="rec-list" size="6"></select></div>
     <div class="actions"><button class="btn" id="rec-load">📂 呼び出し</button><button class="btn" id="rec-del">🗑 選択を削除</button></div>
     <div class="actions" style="margin-top:.4rem">
       <button class="btn" id="rec-export">⬇ 書き出し(JSON)</button>
@@ -609,6 +662,15 @@ async function init() {
     app().addEventListener('input', onChange);
     app().addEventListener('change', onChange);
 
+    // 五十音チップで絞り込み
+    document.querySelectorAll('.kana-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        ACTIVE_KANA_ROW = chip.dataset.row;
+        document.querySelectorAll('.kana-chip').forEach(c => c.classList.toggle('on', c === chip));
+        refreshRecordList();
+      });
+    });
+
     // 保存
     document.getElementById('rec-save').addEventListener('click', () => {
       const recs = loadRecords();
@@ -616,8 +678,9 @@ async function init() {
       const nameInput = document.getElementById('rec-name').value.trim();
       const profName = (document.querySelector('[data-path="profile.name"]') || {}).value || '';
       const name = nameInput || profName || ('カルテ' + (Object.keys(recs).length + 1));
+      const yomi = document.getElementById('rec-yomi').value.trim();
       let bz = null; try { bz = localStorage.getItem('mos_bianzheng_result'); } catch (e) {}
-      recs[id] = { name, at: new Date().toLocaleString('ja-JP'), data: serializeForm(), bianzheng: bz };
+      recs[id] = { name, yomi, at: new Date().toLocaleString('ja-JP'), data: serializeForm(), bianzheng: bz };
       storeRecords(recs);
       refreshRecordList();
       document.getElementById('rec-list').value = id;
@@ -630,6 +693,8 @@ async function init() {
       const recs = loadRecords();
       if (!recs[id]) return;
       applyData(recs[id].data);
+      document.getElementById('rec-name').value = recs[id].name || '';
+      document.getElementById('rec-yomi').value = recs[id].yomi || '';
       try { recs[id].bianzheng ? localStorage.setItem('mos_bianzheng_result', recs[id].bianzheng) : localStorage.removeItem('mos_bianzheng_result'); } catch (e) {}
       buildBianzhengCard();
       saveForm();
