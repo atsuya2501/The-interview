@@ -11,6 +11,7 @@ const app = () => document.getElementById('karte');
 const META = new Set(['schema_name', 'version', 'description', 'shared_by', 'master_type', 'fallback', 'architecture_note', 'severity_policy', 'level_handling']);
 const STORAGE_KEY = 'karte_form_data';   // 作業中の下書き
 const RECORDS_KEY = 'karte_records';      // 保存済みカルテ群
+const BACKUP_META_KEY = 'karte_backup_meta'; // 最終書き出し記録 {at, count}
 let STIM_MOD = null;                      // stimulus_modulation（刺激量サジェスト）
 let TRACK_MECH = null, TREATMENTS = null, ELECTRO = null; // 治療プラン自動提案用
 let PATIENT_SCRIPTS = null; // 患者向け説明スクリプト
@@ -315,6 +316,52 @@ function prefillFromEngine() {
 // ---- 複数カルテの保存／呼び出し ----
 function loadRecords() { try { return JSON.parse(localStorage.getItem(RECORDS_KEY) || '{}'); } catch (e) { return {}; } }
 function storeRecords(r) { try { localStorage.setItem(RECORDS_KEY, JSON.stringify(r)); } catch (e) {} }
+// ---- バックアップ（書き出し）状況の記録・注意喚起 ----
+// localStorageのみが正でブラウザ削除/端末変更で消失し得るため、未書き出し件数・経過日数から促す。
+function getBackupMeta() { try { return JSON.parse(localStorage.getItem(BACKUP_META_KEY) || 'null'); } catch (e) { return null; } }
+function setBackupMeta(count) { try { localStorage.setItem(BACKUP_META_KEY, JSON.stringify({ at: new Date().toISOString(), count })); } catch (e) {} }
+
+// localStorage 使用量の概算（UTF-16換算バイト）。ブラウザの一般的な上限(目安5MB)からの逼迫度を出す。
+function estimateStorageBytes() {
+  let total = 0;
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      total += (k.length + (localStorage.getItem(k) || '').length) * 2;
+    }
+  } catch (e) {}
+  return total;
+}
+
+function buildBackupReminder() {
+  const existing = document.getElementById('backup-reminder-card');
+  if (existing) existing.remove();
+
+  const recCount = Object.keys(loadRecords()).length;
+  const meta = getBackupMeta();
+  const pending = meta ? Math.max(0, recCount - meta.count) : recCount;
+  const daysSince = meta ? (Date.now() - new Date(meta.at).getTime()) / 86400000 : Infinity;
+
+  const bytes = estimateStorageBytes();
+  const quotaWarn = bytes > 4 * 1024 * 1024; // 目安5MBの8割超で警告
+
+  const shouldNag = recCount > 0 && (pending >= 3 || (pending > 0 && daysSince >= 7) || (!meta && recCount > 0));
+  if (!shouldNag && !quotaWarn) return;
+
+  const lastTxt = meta ? new Date(meta.at).toLocaleString('ja-JP') : '未実施';
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.id = 'backup-reminder-card';
+  card.innerHTML = `<p class="lead">📦 データはこの端末のブラウザ内にのみ保存されています。定期的な書き出し(JSON)を推奨します。</p>
+    ${shouldNag ? `<p class="hint">最終書き出し：${lastTxt}${pending > 0 ? `／未書き出しのカルテ ${pending} 件` : ''}</p>` : ''}
+    ${quotaWarn ? `<div class="alert yellow"><strong>⚠ 保存容量が多くなっています</strong><p>ブラウザのデータ削除で失われる前に書き出しをおすすめします（目安使用量 ${(bytes / 1024 / 1024).toFixed(1)}MB）。</p></div>` : ''}
+    <div class="actions"><button class="btn primary" id="backup-now">⬇ 今すぐ書き出す</button><button class="btn" id="backup-later">あとで</button></div>`;
+  app().prepend(card);
+
+  document.getElementById('backup-now').addEventListener('click', () => document.getElementById('rec-export').click());
+  document.getElementById('backup-later').addEventListener('click', () => card.remove());
+}
+
 let ACTIVE_KANA_ROW = ''; // '' = すべて
 function refreshRecordList() {
   const sel = document.getElementById('rec-list');
@@ -684,6 +731,7 @@ async function init() {
       storeRecords(recs);
       refreshRecordList();
       document.getElementById('rec-list').value = id;
+      buildBackupReminder();
       alert(`「${name}」を保存しました。`);
     });
     // 呼び出し
@@ -721,6 +769,8 @@ async function init() {
       const a = document.createElement('a');
       a.href = url; a.download = `karte_${new Date().toISOString().slice(0, 10)}.json`;
       a.click(); URL.revokeObjectURL(url);
+      setBackupMeta(Object.keys(bundle.records).length);
+      buildBackupReminder();
     });
     // 読み込み
     document.getElementById('rec-import').addEventListener('click', () => document.getElementById('rec-file').click());
@@ -734,6 +784,8 @@ async function init() {
           if (b.engine_output) localStorage.setItem('karte_engine_output', JSON.stringify(b.engine_output));
           if (b.mos_bianzheng) { localStorage.setItem('mos_bianzheng_result', JSON.stringify(b.mos_bianzheng)); buildBianzhengCard(); }
           if (b.form) { applyData(b.form); saveForm(); }
+          setBackupMeta(Object.keys(loadRecords()).length);
+          buildBackupReminder();
           alert('読み込みました（保存済みカルテはマージ）。');
         } catch (err) { alert('読み込みに失敗しました：' + err.message); }
         e.target.value = '';
@@ -754,6 +806,7 @@ async function init() {
       banner.innerHTML = `<p class="lead">🗂 直近の鑑別結果（${filled.saved_at || ''}）を「鑑別エンジン出力」「診断名」に自動入力しました。</p>`;
       app().prepend(banner);
     }
+    buildBackupReminder(); // 最後にprependすることで一番上に表示（filledバナーより優先度が高い注意喚起のため）
   } catch (e) {
     app().innerHTML = `<div class="card error">カルテ様式の読み込みに失敗しました：${e.message}</div>`;
   }
