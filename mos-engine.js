@@ -10,9 +10,35 @@
   const ANSWERS_KEY = 'mos_answers';
   const SCALEMODE_KEY = 'mos_scale_mode'; // 'M' | 'F'
   const SCALE = { '常にある': 2, '時々ある': 1, 'ない': 0 };
-  let QUESTIONS = null, SCORING = null, BIANZHENG = null, ACUPOINTS = null;
+  let QUESTIONS = null, SCORING = null, BIANZHENG = null, ACUPOINTS = null, TCM_FINDINGS = null;
   let rerankTimer = null; // 相違点チェックの再ランクをデバウンス
   const BZ_SELECTED_KEY = 'mos_selected_syndrome';
+  const TONGUE_PULSE_KEY = 'mos_tongue_pulse';
+
+  // 舌脈所見 → 証候の tongue_pulse 文中キーワードの対応（臨床経験ベースの簡易照合。tcm_findings.json の enum を再利用）
+  const TP_KEYWORDS = {
+    strength: { '弱い': ['弱', '虚脈', '濡弱', '沈弱', '沈細', '濡数'], '強い': ['数', '洪', '滑数', '弦数', '有力', '緊脈'] },
+    tongue_color: { '淡白': ['淡'], '紅・紫': ['紅', '紫', '絳'] },
+    tongue_shape: { '胖大(ワイド)': ['胖大', '歯痕'], '老(シャープ)': ['老', '痩', '裂'] }
+  };
+  function getTonguePulse() { try { return JSON.parse(localStorage.getItem(TONGUE_PULSE_KEY) || '{}'); } catch (e) { return {}; } }
+  function setTonguePulse(o) { try { localStorage.setItem(TONGUE_PULSE_KEY, JSON.stringify(o)); } catch (e) {} }
+  // 選択済み舌脈所見と証の tongue_pulse 記載を照合し、一致数と一致ラベルを返す
+  function tonguePulseMatch(s) {
+    const tp = getTonguePulse();
+    const text = s.tongue_pulse || '';
+    let score = 0;
+    const matched = [];
+    const check = (val, map, label) => {
+      if (!val || val === '正常') return;
+      const kws = map[val];
+      if (kws && kws.some(k => text.includes(k))) { score += 1; matched.push(`${label}:${val}`); }
+    };
+    check(tp.strength, TP_KEYWORDS.strength, '脈');
+    check(tp.tongue_color, TP_KEYWORDS.tongue_color, '舌色');
+    check(tp.tongue_shape, TP_KEYWORDS.tongue_shape, '舌形');
+    return { score, matched };
+  }
 
   function loadAnswers() { try { return JSON.parse(localStorage.getItem(ANSWERS_KEY) || '{}'); } catch (e) { return {}; } }
   function saveAnswers(a) { try { localStorage.setItem(ANSWERS_KEY, JSON.stringify(a)); } catch (e) {} }
@@ -142,6 +168,7 @@
   // 全証を横断して得点化し降順で返す（鑑別エンジン同型）。
   //   base   … 属するグループの軸スコア(%/10)×重み(main=1 / aux=0.6 / obvious=0.4)
   //   distinct一致 … チェックされた相違点トークン1つ +2
+  //   舌脈一致 … 入力した脈の強さ・舌の色・舌の形が証の記載と合致すれば1項目+1（最大+3）
   function buildCandidates() {
     const groups = relevantGroups();
     const wmul = { main: 1, aux: 0.6, obvious: 0.4 };
@@ -152,26 +179,48 @@
       (g.syndromes || []).forEach(s => {
         const toks = distinctTokens(s);
         const matched = (checks[s.id] || []).filter(t => toks.includes(t)).length;
-        cands.push({ s, group: g.group, weight: g.clinical_weight, axes: g._axes, base, matched, total: base + matched * 2, toks });
+        const tp = tonguePulseMatch(s);
+        cands.push({ s, group: g.group, weight: g.clinical_weight, axes: g._axes, base, matched, tpScore: tp.score, tpMatched: tp.matched, total: base + matched * 2 + tp.score, toks });
       });
     });
     return cands.sort((a, b) => (b.total - a.total) || a.s.name.localeCompare(b.s.name, 'ja'));
   }
 
   // 選択中の証をカルテ等で再利用できるよう localStorage に保存
+  // 証名・選穴だけでなく、根拠（該当した相違点・舌脈所見の一致）も残す（確定証サマリだけでは判断根拠が消えるため）
   function saveBianzhengResult(id) {
     id = id || getSelected();
     if (!id || !BIANZHENG) { try { localStorage.removeItem('mos_bianzheng_result'); } catch (e) {} return; }
     let found = null, grp = null;
     BIANZHENG.groups.forEach(g => (g.syndromes || []).forEach(s => { if (s.id === id) { found = s; grp = g; } }));
     if (!found) return;
+    const checks = getDistinctChecks();
+    const matchedDistinct = (checks[id] || []).filter(t => distinctTokens(found).includes(t));
+    const tp = getTonguePulse();
+    const tpm = tonguePulseMatch(found);
     const result = {
       group: grp.group, syndrome_id: found.id, syndrome: found.name,
       points: found.points, technique: found.technique,
       points_detail: found.points.map(n => Object.assign({ name: n }, (ACUPOINTS && ACUPOINTS.points[n]) || {})),
+      matched_distinct: matchedDistinct,
+      tongue_pulse_input: tp,
+      tongue_pulse_matched: tpm.matched,
       saved_at: new Date().toLocaleString('ja-JP')
     };
     try { localStorage.setItem('mos_bianzheng_result', JSON.stringify(result)); } catch (e) {}
+  }
+
+  // 舌・脈の所見入力カード（tcm_findings.json の enum を再利用。カルテの刺激量決定と同じ所見）
+  function tonguePulseCardHtml() {
+    if (!TCM_FINDINGS) return '';
+    const opts = arr => ['<option value="">未選択</option>'].concat((arr || []).map(o => `<option value="${o}">${o}</option>`)).join('');
+    return `<section class="card" id="mos-tonguepulse">
+      <h2>舌・脈の所見</h2>
+      <p class="lead">証候候補の順位に反映します（未入力でも候補は表示されます）。</p>
+      <div class="k-field"><span class="k-label">脈の強さ</span><select id="tp-strength">${opts(TCM_FINDINGS.pulse && TCM_FINDINGS.pulse._enum_strength)}</select></div>
+      <div class="k-field"><span class="k-label">舌の色</span><select id="tp-color">${opts(TCM_FINDINGS.tongue && TCM_FINDINGS.tongue._enum_color)}</select></div>
+      <div class="k-field"><span class="k-label">舌の形</span><select id="tp-shape">${opts(TCM_FINDINGS.tongue && TCM_FINDINGS.tongue._enum_shape)}</select></div>
+    </section>`;
   }
 
   function renderBianzheng() {
@@ -203,6 +252,7 @@
         <div class="bz-detail">
           ${s.common ? `<div class="bz-line"><b>共通</b>${s.common}</div>` : ''}
           ${s.tongue_pulse ? `<div class="bz-line"><b>舌脈</b>${s.tongue_pulse}</div>` : ''}
+          ${c.tpMatched.length ? `<div class="bz-line"><b>舌脈一致</b>${c.tpMatched.join('・')}</div>` : ''}
           <div class="bz-points"><b>選穴例</b> ${s.points.map(pointHtml).join('')}</div>
           <div class="bz-line"><b>手技</b>${s.technique}</div>
         </div>` : '';
@@ -212,6 +262,7 @@
             <span class="rank-badge">${i === 0 ? '最有力' : '#' + (i + 1)}</span>
             <span class="bz-cand-name">${s.name}</span>
             <span class="tag light">${c.group}</span>${wtag(c.weight)}
+            ${c.tpScore > 0 ? `<span class="tag light">舌脈+${c.tpScore}</span>` : ''}
             <span class="score-pill">${c.total.toFixed(0)}</span>
           </button>
           <div class="bar"><div class="bar-fill" style="width:${Math.round(c.total / maxTotal * 100)}%"></div></div>
@@ -240,7 +291,7 @@
         // 即時フィードバック：このカードの点数をその場更新（並べ替えはデバウンス）
         const cardEl = cb.closest('.bz-cand');
         const matched = (ch[id] || []).filter(t => cand.toks.includes(t)).length;
-        cand.total = cand.base + matched * 2;
+        cand.total = cand.base + matched * 2 + (cand.tpScore || 0);
         const sp = cardEl && cardEl.querySelector('.score-pill');
         if (sp) sp.textContent = cand.total.toFixed(0);
         // 入力が落ち着いたら一度だけ再ランク（カードが毎クリック飛ぶのを防ぐ）
@@ -299,6 +350,7 @@
         <button class="btn" id="mos-clear">🗑 回答をクリア</button>
       </div>
       <section class="card" id="mos-profile"></section>
+      ${tonguePulseCardHtml()}
       <section class="card" id="mos-bianzheng" hidden></section>`;
 
     // 復元
@@ -309,6 +361,21 @@
     });
     document.getElementById('mos-mode').value = mode;
     applyMode(mode);
+
+    // 舌・脈所見の復元＋変更で証候候補を再ランク
+    const tp = getTonguePulse();
+    const tpFieldMap = { 'tp-strength': 'strength', 'tp-color': 'tongue_color', 'tp-shape': 'tongue_shape' };
+    Object.keys(tpFieldMap).forEach(elId => {
+      const el = document.getElementById(elId);
+      if (!el) return;
+      el.value = tp[tpFieldMap[elId]] || '';
+      el.addEventListener('change', () => {
+        const cur = getTonguePulse();
+        cur[tpFieldMap[elId]] = el.value;
+        setTonguePulse(cur);
+        renderBianzheng();
+      });
+    });
 
     root().addEventListener('change', e => {
       const t = e.target;
@@ -345,11 +412,12 @@
 
   async function init() {
     try {
-      [QUESTIONS, SCORING, BIANZHENG, ACUPOINTS] = await Promise.all([
+      [QUESTIONS, SCORING, BIANZHENG, ACUPOINTS, TCM_FINDINGS] = await Promise.all([
         fetch('data/mos_questions.json').then(r => r.json()),
         fetch('data/mos_scoring.json').then(r => r.json()),
         fetch('data/tcm_bianzheng.json').then(r => r.json()).catch(() => null),
-        fetch('data/acupoints.json').then(r => r.json()).catch(() => null)
+        fetch('data/acupoints.json').then(r => r.json()).catch(() => null),
+        fetch('data/tcm_findings.json').then(r => r.json()).catch(() => null)
       ]);
       render();
     } catch (e) {

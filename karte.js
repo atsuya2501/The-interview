@@ -613,7 +613,20 @@ function buildPatientScript() {
   }
 }
 
-// MOS弁証の確定証（mos_bianzheng_result）をカルテに流し込み（証・選穴・手技の表示カード）
+// MOSの生回答・弁証グループ選択・相違点チェック・舌脈所見。カルテ保存/書き出しに含め監査可能にする（確定証サマリだけでは根拠が消えるため）
+const MOS_RAW_KEYS = ['mos_answers', 'mos_distinct_checks', 'mos_scale_mode', 'mos_tongue_pulse', 'mos_selected_syndrome'];
+function captureMosRaw() {
+  const out = {};
+  MOS_RAW_KEYS.forEach(k => { try { const v = localStorage.getItem(k); if (v != null) out[k] = v; } catch (e) {} });
+  return out;
+}
+function restoreMosRaw(obj) {
+  MOS_RAW_KEYS.forEach(k => {
+    try { (obj && obj[k] != null) ? localStorage.setItem(k, obj[k]) : localStorage.removeItem(k); } catch (e) {}
+  });
+}
+
+// MOS弁証の確定証（mos_bianzheng_result）をカルテに流し込み（証・選穴・手技・根拠の表示カード）
 function buildBianzhengCard() {
   const existing = document.getElementById('bz-karte-card');
   if (existing) existing.remove();
@@ -632,6 +645,8 @@ function buildBianzhengCard() {
   card.innerHTML = `<h2>東洋医学的弁証（MOS）</h2>
     <p class="hint">MOSスコア→証候候補から選択した証（確定証ではなく示唆）。${data.saved_at ? escapeHtml(data.saved_at) : ''}</p>
     <div class="k-field"><span class="k-label">証</span><div><b>${escapeHtml(data.syndrome)}</b> <span class="tag light">${escapeHtml(data.group || '')}</span></div></div>
+    ${data.matched_distinct && data.matched_distinct.length ? `<div class="k-field"><span class="k-label">該当した相違点</span><div>${data.matched_distinct.map(escapeHtml).join('・')}</div></div>` : ''}
+    ${data.tongue_pulse_matched && data.tongue_pulse_matched.length ? `<div class="k-field"><span class="k-label">舌脈所見との一致</span><div>${data.tongue_pulse_matched.map(escapeHtml).join('・')}</div></div>` : ''}
     <div class="bz-points" style="margin:.5rem 0"><b>選穴例</b> ${ptHtml}</div>
     <div class="k-field"><span class="k-label">手技</span><div>${escapeHtml(data.technique || '')}</div></div>`;
 
@@ -727,7 +742,7 @@ async function init() {
       const name = nameInput || profName || ('カルテ' + (Object.keys(recs).length + 1));
       const yomi = document.getElementById('rec-yomi').value.trim();
       let bz = null; try { bz = localStorage.getItem('mos_bianzheng_result'); } catch (e) {}
-      recs[id] = { name, yomi, at: new Date().toLocaleString('ja-JP'), data: serializeForm(), bianzheng: bz };
+      recs[id] = { name, yomi, at: new Date().toLocaleString('ja-JP'), data: serializeForm(), bianzheng: bz, mos_raw: captureMosRaw() };
       storeRecords(recs);
       refreshRecordList();
       document.getElementById('rec-list').value = id;
@@ -744,6 +759,7 @@ async function init() {
       document.getElementById('rec-name').value = recs[id].name || '';
       document.getElementById('rec-yomi').value = recs[id].yomi || '';
       try { recs[id].bianzheng ? localStorage.setItem('mos_bianzheng_result', recs[id].bianzheng) : localStorage.removeItem('mos_bianzheng_result'); } catch (e) {}
+      restoreMosRaw(recs[id].mos_raw);
       buildBianzhengCard();
       saveForm();
       alert(`「${recs[id].name}」を呼び出しました。`);
@@ -763,7 +779,7 @@ async function init() {
     document.getElementById('rec-export').addEventListener('click', () => {
       let eng = null; try { eng = JSON.parse(localStorage.getItem('karte_engine_output') || 'null'); } catch (e) {}
       let bz = null; try { bz = JSON.parse(localStorage.getItem('mos_bianzheng_result') || 'null'); } catch (e) {}
-      const bundle = { schema: 'karte_export', version: 1, exported_at: new Date().toISOString(), form: serializeForm(), records: loadRecords(), engine_output: eng, mos_bianzheng: bz };
+      const bundle = { schema: 'karte_export', version: 1, exported_at: new Date().toISOString(), form: serializeForm(), records: loadRecords(), engine_output: eng, mos_bianzheng: bz, mos_raw: captureMosRaw() };
       const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -782,7 +798,9 @@ async function init() {
           const b = JSON.parse(reader.result);
           if (b.records) { const cur = loadRecords(); storeRecords(Object.assign(cur, b.records)); refreshRecordList(); }
           if (b.engine_output) localStorage.setItem('karte_engine_output', JSON.stringify(b.engine_output));
-          if (b.mos_bianzheng) { localStorage.setItem('mos_bianzheng_result', JSON.stringify(b.mos_bianzheng)); buildBianzhengCard(); }
+          if (b.mos_bianzheng) { localStorage.setItem('mos_bianzheng_result', JSON.stringify(b.mos_bianzheng)); }
+          if (b.mos_raw) restoreMosRaw(b.mos_raw);
+          buildBianzhengCard();
           if (b.form) { applyData(b.form); saveForm(); }
           setBackupMeta(Object.keys(loadRecords()).length);
           buildBackupReminder();
