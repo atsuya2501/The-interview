@@ -12,6 +12,32 @@ const META = new Set(['schema_name', 'version', 'description', 'shared_by', 'mas
 const STORAGE_KEY = 'karte_form_data';   // 作業中の下書き
 const RECORDS_KEY = 'karte_records';      // 保存済みカルテ群
 const BACKUP_META_KEY = 'karte_backup_meta'; // 最終書き出し記録 {at, count}
+// 舌・脈・抗重力筋の所見。mos.html（東洋弁証の証候候補スコアリング）と同一キーを共有する単一ソース。
+// 別々に持つと同じ所見を二重入力し、東西の判断が食い違う（証は虚証なのに刺激量は強め等）ため一本化する。
+const TCM_SHARED_KEY = 'tcm_shared_findings';
+function getTcmShared() { try { return JSON.parse(localStorage.getItem(TCM_SHARED_KEY) || '{}'); } catch (e) { return {}; } }
+function setTcmShared(o) { try { localStorage.setItem(TCM_SHARED_KEY, JSON.stringify(o)); } catch (e) {} }
+// 共有キー → カルテの舌脈入力欄（表示側）。preferShared=true で共有側の値を優先（他タブ編集・カルテ呼び出し直後に使用）。
+function syncTcmFieldsFromShared(preferShared) {
+  const shared = getTcmShared();
+  const map = [['tcm.pulse.strength', 'strength'], ['tcm.tongue.color', 'tongue_color'], ['tcm.tongue.shape', 'tongue_shape'], ['tcm.muscle_hardness.value', 'muscle_hardness']];
+  map.forEach(([dp, key]) => {
+    const el = document.querySelector(`[data-path="${dp}"]`);
+    if (!el) return;
+    if (shared[key] != null && (preferShared || !el.value)) el.value = shared[key];
+  });
+}
+// カルテの舌脈入力欄（表示側） → 共有キー。値がある項目のみ反映（空欄で他タブの値を消さない）。
+function pushTcmToShared() {
+  const shared = getTcmShared();
+  const v = dp => (document.querySelector(`[data-path="${dp}"]`) || {}).value || '';
+  const pulse = v('tcm.pulse.strength'), tColor = v('tcm.tongue.color'), tShape = v('tcm.tongue.shape'), hard = v('tcm.muscle_hardness.value');
+  if (pulse) shared.strength = pulse;
+  if (tColor) shared.tongue_color = tColor;
+  if (tShape) shared.tongue_shape = tShape;
+  if (hard) shared.muscle_hardness = hard;
+  setTcmShared(shared);
+}
 let STIM_MOD = null;                      // stimulus_modulation（刺激量サジェスト）
 let TRACK_MECH = null, TREATMENTS = null, ELECTRO = null; // 治療プラン自動提案用
 let PATIENT_SCRIPTS = null; // 患者向け説明スクリプト
@@ -166,19 +192,19 @@ function renderTcm(tcm) {
   const phaseField = `<div class="k-field"><span class="k-label">時期（phase）</span>
     <input type="text" data-path="stimulus_decision.phase" placeholder="脈・舌から自動推定"></div>`;
   return `<section class="card k-section"><h2>東洋医学的所見（刺激量の決定）</h2>
-    <p class="lead">脈・舌・抗重力筋の硬さ → 時期(phase)と刺激量の参考。術者が記入。</p>${blocks}${phaseField}
+    <p class="lead">脈・舌・抗重力筋の硬さ → 時期(phase)と刺激量の参考。術者が記入。東洋弁証（MOS）ページと共有される項目です。</p>${blocks}${phaseField}
     <div id="stim-suggest" class="obs-block" hidden></div></section>`;
 }
 
-// 脈・舌・硬さ → 時期(phase)＋刺激サジェスト（stimulus_modulation, 臨床経験ベース）
-function updateStimulus() {
-  const box = document.getElementById('stim-suggest');
-  if (!box || !STIM_MOD) return;
-  const val = dp => (document.querySelector(`[data-path="${dp}"]`) || {}).value || '';
-  const pulse = val('tcm.pulse.strength');
-  const tColor = val('tcm.tongue.color'), tShape = val('tcm.tongue.shape');
-  const hard = val('tcm.muscle_hardness.value');
-  if (!pulse && !tColor && !tShape && !hard) { box.hidden = true; return; }
+// 脈・舌・硬さ → 時期(phase)＋刺激サジェストを算出する純粋関数（DOM非依存）。
+// 共有キー(tcm_shared_findings)を読むため、MOSページで入力した舌脈もそのまま反映される。
+function computeStimulusSuggestion() {
+  const shared = getTcmShared();
+  const pulse = shared.strength || '';
+  const tColor = shared.tongue_color || '';
+  const tShape = shared.tongue_shape || '';
+  const hard = shared.muscle_hardness || '';
+  if (!pulse && !tColor && !tShape && !hard) return null;
 
   const pulseWeak = pulse === '弱い';
   const pulseNormal = pulse === '強い' || pulse === '正常';
@@ -200,15 +226,100 @@ function updateStimulus() {
   else if (tongueChanged) phase = '慢性/慢性化傾向';
   else if (pulseNormal || tColor || tShape) phase = '急性';
 
-  // phase をカルテ欄に自動入力
-  const phaseEl = document.querySelector('[data-path="stimulus_decision.phase"]');
-  if (phaseEl && phase) phaseEl.value = phase;
+  // 脈からみた刺激強度（補瀉整合チェックで使用）。弱い脈=弱刺激が原則、強い/正常=強刺激も可。
+  const strengthLevel = pulseWeak ? 'weak' : (pulse ? 'strong' : 'neutral');
+  return { phase, lines, pulseWeak, strengthLevel };
+}
 
-  box.hidden = false;
-  box.innerHTML = `<p class="obs-h">🧭 刺激量サジェスト（脈・舌・硬さより／臨床経験ベース）</p>
-    ${phase ? `<p>推定時期（phase）：<b>${phase}</b>${pulseWeak ? '（脈が弱い→急性/慢性に優先して弱刺激・浅め）' : ''}</p>` : ''}
-    <ul class="hit-list">${lines.map(l => `<li>${l}</li>`).join('')}</ul>
-    <p class="hint">エビデンスではなく臨床経験に基づく参考（原著明記）。Step3鑑別とは別格。</p>`;
+// 脈・舌・硬さ → 時期(phase)＋刺激サジェスト（stimulus_modulation, 臨床経験ベース）をDOMへ反映
+function updateStimulus() {
+  const box = document.getElementById('stim-suggest');
+  if (box && STIM_MOD) {
+    const sug = computeStimulusSuggestion();
+    if (!sug) {
+      box.hidden = true;
+    } else {
+      const phaseEl = document.querySelector('[data-path="stimulus_decision.phase"]');
+      if (phaseEl && sug.phase) phaseEl.value = sug.phase;
+      box.hidden = false;
+      box.innerHTML = `<p class="obs-h">🧭 刺激量サジェスト（脈・舌・硬さより／臨床経験ベース）</p>
+        ${sug.phase ? `<p>推定時期（phase）：<b>${sug.phase}</b>${sug.pulseWeak ? '（脈が弱い→急性/慢性に優先して弱刺激・浅め）' : ''}</p>` : ''}
+        <ul class="hit-list">${sug.lines.map(l => `<li>${l}</li>`).join('')}</ul>
+        <p class="hint">エビデンスではなく臨床経験に基づく参考（原著明記）。Step3鑑別とは別格。</p>`;
+    }
+  }
+  buildIntegratedPlanCard();
+}
+
+// 証のtechnique文字列 → 補瀉分類。「補」「瀉」両方含む(初期は瀉法、後期は平補平瀉 等)は mixed、
+// どちらも含まない(虚実で異なる 等)は null として整合チェックの対象外にする。
+function bianzhengPolarity(techniqueText) {
+  const t = techniqueText || '';
+  const hasBu = t.includes('補'), hasXie = t.includes('瀉');
+  if (hasBu && hasXie) return 'mixed';
+  if (hasBu) return 'tonify';
+  if (hasXie) return 'purge';
+  return null;
+}
+
+// 証の補瀉 と 刺激強度(脈由来 or 西洋機序の手技) の不整合を検出。
+// 虚証(補法)への強刺激は「虚虚の戒め」に反するため主眼に置き、実証(瀉法)+弱刺激は参考情報として扱う。
+function checkStimConsistency(bzPolarity, stimStrengthLevel, westernTechniques) {
+  if (!bzPolarity || bzPolarity === 'mixed') return null;
+  const techs = westernTechniques || [];
+  const westernStrong = techs.some(t => /雀啄|響く|鍼通電|深部組織/.test(t));
+  const westernWeak = techs.length > 0 && techs.every(t => /軽微|置鍼|鍉鍼|接触鍼|擦過/.test(t));
+
+  if (bzPolarity === 'tonify' && (stimStrengthLevel === 'strong' || westernStrong)) {
+    return { level: 'warn', message: '証は補法（虚証）ですが、選択中の刺激は強め（瀉法寄り）です。虚証への強刺激は避け、刺激量・手技を弱める方向で再検討してください。' };
+  }
+  if (bzPolarity === 'purge' && (stimStrengthLevel === 'weak' || westernWeak)) {
+    return { level: 'info', message: '証は瀉法（実証）ですが、選択中の刺激は弱め（補法寄り）です。効果が乏しい可能性があるため、刺激量を強める余地がないか確認してください。' };
+  }
+  return null;
+}
+
+// 西洋（機序）× 東洋（証・補瀉）× 刺激量 を1枚に合成した統合治療方針カード。
+// これまで3箇所に分散していた示唆を一覧化し、補瀉と刺激量の不整合があれば警告する。
+function buildIntegratedPlanCard() {
+  const existing = document.getElementById('integrated-plan-card');
+  if (existing) existing.remove();
+
+  let eng = null; try { eng = JSON.parse(localStorage.getItem('karte_engine_output') || 'null'); } catch (e) {}
+  let bz = null; try { bz = JSON.parse(localStorage.getItem('mos_bianzheng_result') || 'null'); } catch (e) {}
+  const stimSug = computeStimulusSuggestion();
+  if (!eng && !bz && !stimSug) return;
+
+  const r = (eng && eng.treatment_track) ? resolveTx(eng.treatment_track, eng.region_key) : null;
+  const westernTechniques = ((r && r.txs) || []).map(t => t.technique);
+
+  const westernHtml = eng && eng.treatment_track
+    ? `<div class="k-field"><span class="k-label">西洋（機序）</span><div>${escapeHtml(eng.treatment_track)}${r && r.txs.length ? ' — ' + r.txs.map(t => escapeHtml(t.mechanism)).join('・') : '（鍼の機序候補なし）'}</div></div>`
+    : '';
+  const easternHtml = bz
+    ? `<div class="k-field"><span class="k-label">東洋（証）</span><div><b>${escapeHtml(bz.syndrome)}</b>（${escapeHtml(bz.group || '')}） — ${escapeHtml(bz.technique || '')}</div></div>`
+    : '';
+  const stimHtml = stimSug
+    ? `<div class="k-field"><span class="k-label">刺激量</span><div>${stimSug.phase ? `時期：${escapeHtml(stimSug.phase)}　` : ''}${stimSug.lines.map(escapeHtml).join(' / ')}</div></div>`
+    : '';
+  if (!westernHtml && !easternHtml && !stimHtml) return;
+
+  const bzPolarity = bz ? bianzhengPolarity(bz.technique) : null;
+  const warn = checkStimConsistency(bzPolarity, stimSug && stimSug.strengthLevel, westernTechniques);
+  const warnHtml = !warn ? '' : warn.level === 'warn'
+    ? `<div class="alert yellow"><strong>⚠ 補瀉と刺激量の不整合</strong><p>${escapeHtml(warn.message)}</p></div>`
+    : `<div class="obs-block"><p class="obs-h">ℹ 補瀉について</p><p>${escapeHtml(warn.message)}</p></div>`;
+
+  const card = document.createElement('section');
+  card.className = 'card';
+  card.id = 'integrated-plan-card';
+  card.innerHTML = `<h2>統合治療方針（西洋 × 東洋 × 刺激量）</h2>
+    <p class="hint">3つの示唆を合成した一覧です（確定ではなく参考）。最終判断は術者が行ってください。</p>
+    ${westernHtml}${easternHtml}${stimHtml}${warnHtml}`;
+
+  const directActions = [...app().children].filter(el => el.classList && el.classList.contains('actions'));
+  const anchor = directActions[directActions.length - 1];
+  if (anchor) app().insertBefore(card, anchor); else app().appendChild(card);
 }
 
 // ---- フォーム値の入出力 ----
@@ -614,7 +725,7 @@ function buildPatientScript() {
 }
 
 // MOSの生回答・弁証グループ選択・相違点チェック・舌脈所見。カルテ保存/書き出しに含め監査可能にする（確定証サマリだけでは根拠が消えるため）
-const MOS_RAW_KEYS = ['mos_answers', 'mos_distinct_checks', 'mos_scale_mode', 'mos_tongue_pulse', 'mos_selected_syndrome'];
+const MOS_RAW_KEYS = ['mos_answers', 'mos_distinct_checks', 'mos_scale_mode', TCM_SHARED_KEY, 'mos_selected_syndrome'];
 function captureMosRaw() {
   const out = {};
   MOS_RAW_KEYS.forEach(k => { try { const v = localStorage.getItem(k); if (v != null) out[k] = v; } catch (e) {} });
@@ -691,12 +802,16 @@ async function init() {
 
     refreshRecordList();
     restoreForm();
+    // 舌脈所見の共有キーと突き合わせ：空欄は共有側で補完、値があれば共有側へ反映（相互同期の起点）
+    syncTcmFieldsFromShared(false);
+    pushTcmToShared();
     const filled = prefillFromEngine();
     updateAge();
-    updateStimulus();
+    updateStimulus(); // 内部で buildIntegratedPlanCard() も実行
     buildTreatmentSuggest();
     buildPatientScript();
     buildBianzhengCard();
+    buildIntegratedPlanCard();
 
     // 経過記録：日付デフォルト＝本日、追加ボタン、一覧描画
     const plDate = document.getElementById('pl-date');
@@ -718,7 +833,7 @@ async function init() {
     const onChange = (e) => {
       const dp = e.target && e.target.dataset ? e.target.dataset.path : '';
       if (dp && dp.startsWith('profile.birth_')) updateAge();
-      if (dp && dp.startsWith('tcm.')) updateStimulus();
+      if (dp && dp.startsWith('tcm.')) { pushTcmToShared(); updateStimulus(); }
       saveForm();
     };
     app().addEventListener('input', onChange);
@@ -760,6 +875,8 @@ async function init() {
       document.getElementById('rec-yomi').value = recs[id].yomi || '';
       try { recs[id].bianzheng ? localStorage.setItem('mos_bianzheng_result', recs[id].bianzheng) : localStorage.removeItem('mos_bianzheng_result'); } catch (e) {}
       restoreMosRaw(recs[id].mos_raw);
+      syncTcmFieldsFromShared(true); // このカルテの舌脈スナップショットを表示欄にも反映
+      updateStimulus(); // 内部で buildIntegratedPlanCard() も実行
       buildBianzhengCard();
       saveForm();
       alert(`「${recs[id].name}」を呼び出しました。`);
@@ -800,8 +917,10 @@ async function init() {
           if (b.engine_output) localStorage.setItem('karte_engine_output', JSON.stringify(b.engine_output));
           if (b.mos_bianzheng) { localStorage.setItem('mos_bianzheng_result', JSON.stringify(b.mos_bianzheng)); }
           if (b.mos_raw) restoreMosRaw(b.mos_raw);
-          buildBianzhengCard();
           if (b.form) { applyData(b.form); saveForm(); }
+          syncTcmFieldsFromShared(true);
+          updateStimulus(); // 内部で buildIntegratedPlanCard() も実行
+          buildBianzhengCard();
           setBackupMeta(Object.keys(loadRecords()).length);
           buildBackupReminder();
           alert('読み込みました（保存済みカルテはマージ）。');
@@ -831,6 +950,12 @@ async function init() {
 }
 
 init();
+
+// 他タブ（東洋弁証MOSページ）での舌脈所見・確定証の編集を、開きっぱなしのカルテにも反映
+window.addEventListener('storage', (e) => {
+  if (e.key === TCM_SHARED_KEY) { syncTcmFieldsFromShared(true); updateStimulus(); }
+  if (e.key === 'mos_bianzheng_result') { buildBianzhengCard(); buildIntegratedPlanCard(); }
+});
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('sw.js'));

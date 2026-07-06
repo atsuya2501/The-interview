@@ -13,7 +13,9 @@
   let QUESTIONS = null, SCORING = null, BIANZHENG = null, ACUPOINTS = null, TCM_FINDINGS = null;
   let rerankTimer = null; // 相違点チェックの再ランクをデバウンス
   const BZ_SELECTED_KEY = 'mos_selected_syndrome';
-  const TONGUE_PULSE_KEY = 'mos_tongue_pulse';
+  // 舌脈所見はカルテ(karte.js)の東洋医学的所見（刺激量決定）と同一キーを共有する単一ソース。
+  // 別々に持つと東西の入力が食い違う（同じ所見を二重入力）ため、ここで一本化する。
+  const TONGUE_PULSE_KEY = 'tcm_shared_findings';
 
   // 舌脈所見 → 証候の tongue_pulse 文中キーワードの対応（臨床経験ベースの簡易照合。tcm_findings.json の enum を再利用）
   const TP_KEYWORDS = {
@@ -216,7 +218,7 @@
     const opts = arr => ['<option value="">未選択</option>'].concat((arr || []).map(o => `<option value="${o}">${o}</option>`)).join('');
     return `<section class="card" id="mos-tonguepulse">
       <h2>舌・脈の所見</h2>
-      <p class="lead">証候候補の順位に反映します（未入力でも候補は表示されます）。</p>
+      <p class="lead">証候候補の順位に反映します（未入力でも候補は表示されます）。カルテの「東洋医学的所見（刺激量の決定）」と共有される項目です。</p>
       <div class="k-field"><span class="k-label">脈の強さ</span><select id="tp-strength">${opts(TCM_FINDINGS.pulse && TCM_FINDINGS.pulse._enum_strength)}</select></div>
       <div class="k-field"><span class="k-label">舌の色</span><select id="tp-color">${opts(TCM_FINDINGS.tongue && TCM_FINDINGS.tongue._enum_color)}</select></div>
       <div class="k-field"><span class="k-label">舌の形</span><select id="tp-shape">${opts(TCM_FINDINGS.tongue && TCM_FINDINGS.tongue._enum_shape)}</select></div>
@@ -424,6 +426,18 @@
       root().innerHTML = `<div class="card error">MOSデータの読み込みに失敗しました：${e.message}</div>`;
     }
   }
+
+  // 他タブ（カルテ）で舌脈所見が編集された場合に反映（東西の入力を一本化した効果を即時反映）
+  window.addEventListener('storage', (e) => {
+    if (e.key !== TONGUE_PULSE_KEY) return;
+    const tp = getTonguePulse();
+    const tpFieldMap = { 'tp-strength': 'strength', 'tp-color': 'tongue_color', 'tp-shape': 'tongue_shape' };
+    Object.keys(tpFieldMap).forEach(elId => {
+      const el = document.getElementById(elId);
+      if (el) el.value = tp[tpFieldMap[elId]] || '';
+    });
+    renderBianzheng();
+  });
 
   init();
   if ('serviceWorker' in navigator) {
