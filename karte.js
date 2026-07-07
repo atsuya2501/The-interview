@@ -228,7 +228,8 @@ function computeStimulusSuggestion() {
 
   // 脈からみた刺激強度（補瀉整合チェックで使用）。弱い脈=弱刺激が原則、強い/正常=強刺激も可。
   const strengthLevel = pulseWeak ? 'weak' : (pulse ? 'strong' : 'neutral');
-  return { phase, lines, pulseWeak, strengthLevel };
+  // tongueChanged は深さ/レベル照合で使用（舌変化あり＝脊髄・脳レベルの関与示唆）
+  return { phase, lines, pulseWeak, strengthLevel, tongueChanged };
 }
 
 // 脈・舌・硬さ → 時期(phase)＋刺激サジェスト（stimulus_modulation, 臨床経験ベース）をDOMへ反映
@@ -279,6 +280,33 @@ function checkStimConsistency(bzPolarity, stimStrengthLevel, westernTechniques) 
   return null;
 }
 
+// 時間軸の照合：問診の急性/慢性（罹患期間ベース）と 舌脈由来の phase（急性/慢性化傾向）の食い違いを検出。
+// 「急性なのに舌に変化あり」＝すでに慢性化 or 急性増悪の疑いで、臨床的に重要。
+function checkTemporalConsistency(westernClass, phase) {
+  if (!westernClass || !phase) return null;
+  const westAcute = westernClass.includes('急性');
+  const westChronic = westernClass.includes('慢性');
+  const eastChronic = phase.includes('慢性'); // '慢性/慢性化傾向'
+  const eastAcute = phase === '急性';
+  if (westAcute && eastChronic) {
+    return { level: 'warn', message: '問診は急性（罹患期間）ですが、舌脈所見は慢性化傾向です。すでに慢性化している、または急性増悪の可能性を考慮し、経過を追ってください。' };
+  }
+  if (westChronic && eastAcute) {
+    return { level: 'info', message: '問診は慢性ですが、舌脈所見は急性所見です。急性増悪の可能性がないか確認してください。' };
+  }
+  return null;
+}
+
+// 深さ/レベルの照合：西洋の痛みレベル（末梢/脊髄/脳）と 舌変化（あり＝脊髄・脳レベル関与の示唆）の食い違いを検出。
+// stimulus_modulation.json の level_link（舌変化→中枢レベル）に基づく。
+function checkLevelConsistency(westernLevel, tongueChanged) {
+  if (!westernLevel) return null;
+  if (tongueChanged && westernLevel === '末梢神経レベル') {
+    return { level: 'info', message: '舌に変化があり脊髄・脳レベルの関与を示唆しますが、痛みのレベルは末梢神経レベルと判定されています。中枢性の関与がないか再確認してください。' };
+  }
+  return null;
+}
+
 // 西洋（機序）× 東洋（証・補瀉）× 刺激量 を1枚に合成した統合治療方針カード。
 // これまで3箇所に分散していた示唆を一覧化し、補瀉と刺激量の不整合があれば警告する。
 function buildIntegratedPlanCard() {
@@ -292,9 +320,16 @@ function buildIntegratedPlanCard() {
 
   const r = (eng && eng.treatment_track) ? resolveTx(eng.treatment_track, eng.region_key) : null;
   const westernTechniques = ((r && r.txs) || []).map(t => t.technique);
+  // 西洋の病期・レベル（問診→カルテ欄に流し込み済みの値をDOMから読む）
+  const fv = dp => (document.querySelector(`[data-path="${dp}"]`) || {}).value || '';
+  const westernClass = fv('step1_acute_chronic.classification');
+  const westernLevel = fv('step5_pain_level.level');
 
   const westernHtml = eng && eng.treatment_track
     ? `<div class="k-field"><span class="k-label">西洋（機序）</span><div>${escapeHtml(eng.treatment_track)}${r && r.txs.length ? ' — ' + r.txs.map(t => escapeHtml(t.mechanism)).join('・') : '（鍼の機序候補なし）'}</div></div>`
+    : '';
+  const westernClinicalHtml = (westernClass || westernLevel)
+    ? `<div class="k-field"><span class="k-label">西洋（病期/レベル）</span><div>${[westernClass, westernLevel].filter(Boolean).map(escapeHtml).join(' ／ ')}</div></div>`
     : '';
   const easternHtml = bz
     ? `<div class="k-field"><span class="k-label">東洋（証）</span><div><b>${escapeHtml(bz.syndrome)}</b>（${escapeHtml(bz.group || '')}） — ${escapeHtml(bz.technique || '')}</div></div>`
@@ -302,20 +337,25 @@ function buildIntegratedPlanCard() {
   const stimHtml = stimSug
     ? `<div class="k-field"><span class="k-label">刺激量</span><div>${stimSug.phase ? `時期：${escapeHtml(stimSug.phase)}　` : ''}${stimSug.lines.map(escapeHtml).join(' / ')}</div></div>`
     : '';
-  if (!westernHtml && !easternHtml && !stimHtml) return;
+  if (!westernHtml && !westernClinicalHtml && !easternHtml && !stimHtml) return;
 
+  // 東西の3軸照合（強さ＝補瀉／時間＝急性慢性／深さ＝レベル）。矛盾があれば警告・注記。
   const bzPolarity = bz ? bianzhengPolarity(bz.technique) : null;
-  const warn = checkStimConsistency(bzPolarity, stimSug && stimSug.strengthLevel, westernTechniques);
-  const warnHtml = !warn ? '' : warn.level === 'warn'
-    ? `<div class="alert yellow"><strong>⚠ 補瀉と刺激量の不整合</strong><p>${escapeHtml(warn.message)}</p></div>`
-    : `<div class="obs-block"><p class="obs-h">ℹ 補瀉について</p><p>${escapeHtml(warn.message)}</p></div>`;
+  const checks = [
+    { label: '補瀉と刺激量', r: checkStimConsistency(bzPolarity, stimSug && stimSug.strengthLevel, westernTechniques) },
+    { label: '時間軸（急性/慢性）', r: checkTemporalConsistency(westernClass, stimSug && stimSug.phase) },
+    { label: '深さ/レベル', r: checkLevelConsistency(westernLevel, stimSug && stimSug.tongueChanged) }
+  ].filter(c => c.r);
+  const warnHtml = checks.map(c => c.r.level === 'warn'
+    ? `<div class="alert yellow"><strong>⚠ ${c.label}の不整合</strong><p>${escapeHtml(c.r.message)}</p></div>`
+    : `<div class="obs-block"><p class="obs-h">ℹ ${c.label}</p><p>${escapeHtml(c.r.message)}</p></div>`).join('');
 
   const card = document.createElement('section');
   card.className = 'card';
   card.id = 'integrated-plan-card';
   card.innerHTML = `<h2>統合治療方針（西洋 × 東洋 × 刺激量）</h2>
-    <p class="hint">3つの示唆を合成した一覧です（確定ではなく参考）。最終判断は術者が行ってください。</p>
-    ${westernHtml}${easternHtml}${stimHtml}${warnHtml}`;
+    <p class="hint">3つの示唆を合成し、強さ・時間・深さの3軸で東西を照合します（確定ではなく参考）。最終判断は術者が行ってください。</p>
+    ${westernHtml}${westernClinicalHtml}${easternHtml}${stimHtml}${warnHtml}`;
 
   const directActions = [...app().children].filter(el => el.classList && el.classList.contains('actions'));
   const anchor = directActions[directActions.length - 1];
