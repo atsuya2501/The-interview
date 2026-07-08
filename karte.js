@@ -36,7 +36,7 @@ function pushTcmToShared() {
   if (tColor) shared.tongue_color = tColor;
   if (tShape) shared.tongue_shape = tShape;
   if (hard) shared.muscle_hardness = hard;
-  setTcmShared(shared);
+  if (Object.keys(shared).length) setTcmShared(shared); // 空なら書かない（リセット直後に空キーを再生成しない）
 }
 let STIM_MOD = null;                      // stimulus_modulation（刺激量サジェスト）
 let TRACK_MECH = null, TREATMENTS = null, ELECTRO = null; // 治療プラン自動提案用
@@ -836,6 +836,7 @@ async function init() {
     html += `<div class="actions">
       <button class="btn" onclick="window.print()">🖨 印刷</button>
       <button class="btn" id="k-clear">🗑 入力をクリア</button>
+      <button class="btn" id="k-new-patient">🆕 新しい患者</button>
       <a class="btn" href="index.html">← 鑑別へ戻る</a>
     </div>`;
     app().innerHTML = html;
@@ -970,10 +971,18 @@ async function init() {
       reader.readAsText(file);
     });
 
-    // 下書きクリア
+    // 下書きクリア（鑑別結果・MOS・舌脈は残る。全部消すのは「新しい患者」）
     document.getElementById('k-clear').addEventListener('click', () => {
-      if (!confirm('現在の入力内容をクリアしますか？（保存済みカルテは残ります）')) return;
+      if (!confirm('現在の入力内容をクリアしますか？（保存済みカルテ・鑑別結果・MOSは残ります）')) return;
       try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+      location.reload();
+    });
+
+    // 新しい患者：患者単位の作業データ（下書き・鑑別結果・MOS回答/証・舌脈・問診回答）を全消去。
+    // 前の患者の診断名・所見・証が自動流し込みで次の患者へ伝播する事故を防ぐ。
+    document.getElementById('k-new-patient').addEventListener('click', () => {
+      if (!confirm('新しい患者を開始しますか？\n前の患者の入力（カルテ下書き・鑑別結果・問診・MOS・舌脈）をすべて消去します。\n（保存済みカルテは残ります。未保存なら先に保存してください）')) return;
+      resetPatientData();
       location.reload();
     });
 

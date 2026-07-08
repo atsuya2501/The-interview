@@ -1,4 +1,4 @@
-const CACHE = 'itami-kanbe-v48';
+const CACHE = 'itami-kanbe-v49';
 const ASSETS = [
   '/',
   '/index.html',
@@ -11,6 +11,7 @@ const ASSETS = [
   '/intake.js',
   '/mos.html',
   '/mos-engine.js',
+  '/patient-reset.js',
   '/data/mos_questions.json',
   '/data/mos_scoring.json',
   '/data/tcm_bianzheng.json',

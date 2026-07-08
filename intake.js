@@ -251,6 +251,7 @@ async function init() {
       <h2>問診完了</h2><div id="summary"></div></section>`;
     html += `<div class="actions" id="wiz-nav">
       <button class="btn" id="wiz-back">← 戻る</button>
+      <button class="btn" id="wiz-reset">🗑 回答をリセット</button>
       <button class="btn primary" id="wiz-next">次へ →</button>
     </div>`;
     app().innerHTML = html;
@@ -292,6 +293,12 @@ async function init() {
     showStep(startIdx);
 
     back.addEventListener('click', () => showStep(stepEls.findIndex(el => !el.hidden) - 1));
+    // 問診回答のリセット（前の患者の回答が復元されたまま次の患者を始める事故を防ぐ）
+    document.getElementById('wiz-reset').addEventListener('click', () => {
+      if (!confirm('問診の回答をすべてリセットしますか？')) return;
+      try { localStorage.removeItem(INTAKE_KEY); localStorage.removeItem('intake_step'); } catch (e) {}
+      location.reload();
+    });
     next.addEventListener('click', () => {
       const cur = stepEls.findIndex(el => !el.hidden);
       if (cur === lastIdx - 1) { finish(); return; } // Step6 → 完了

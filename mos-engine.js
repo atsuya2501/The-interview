@@ -395,8 +395,11 @@
       document.getElementById('mos-profile').scrollIntoView({ behavior: 'smooth' });
     });
     document.getElementById('mos-clear').addEventListener('click', () => {
-      if (!confirm('MOSの回答をすべて消去しますか？')) return;
-      try { localStorage.removeItem(ANSWERS_KEY); } catch (e) {}
+      if (!confirm('MOSの回答をすべて消去しますか？\n（相違点チェック・選択した証・確定証も一緒に消えます。舌脈所見はカルテと共有のため残ります）')) return;
+      // 回答だけ消して証候候補・確定証が残ると、消した回答から計算した結果が漂う不整合になるため一括消去
+      [ANSWERS_KEY, 'mos_distinct_checks', BZ_SELECTED_KEY, 'mos_bianzheng_result'].forEach(k => {
+        try { localStorage.removeItem(k); } catch (e) {}
+      });
       render();
     });
     renderProfile();
